@@ -64,3 +64,7 @@ Issues and pull requests are welcome. Please open an issue first to discuss sign
 ## License
 
 GPL v2 or later — see [LICENSE](LICENSE).
+
+== Credits ==
+
+Developed by Biswajit – https://biswazit.in
