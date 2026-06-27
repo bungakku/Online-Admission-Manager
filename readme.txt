@@ -82,3 +82,7 @@ By default, nothing is deleted — your submissions, uploaded files, and setting
 
 = 1.0.0 =
 First public release.
+
+== Credits ==
+
+Developed by Biswajit – https://biswazit.in
