@@ -80,8 +80,15 @@ By default, nothing is deleted — your submissions, uploaded files, and setting
 
 == Upgrade Notice ==
 
-= 1.0.0 =
-First public release.
+= 1.1.1 =
+Fixes a fatal error on PHP 7.4 sites (undefined function in the update checker). Recommended for everyone, required if your host runs PHP 7.4.
+
+= 1.1.0 =
+Aadhar numbers are now encrypted going forward; existing entries are read and displayed normally and become encrypted the next time they're saved. No action needed, but back up your database before updating as good practice.
+
+== Credits ==
+
+Developed by Biswajit – https://biswazit.in
 
 == Credits ==
 
