@@ -16,28 +16,23 @@
     box-sizing: border-box;
 }
 
-/* ---- Institute header (logo / title / tagline) ---- */
+/* --------------------------------------------------------------------------
+   Institute header — logo, title, and tagline each carry their OWN
+   text-align via inline style (set independently in Settings), so they
+   are positioned completely independently of one another.
+   -------------------------------------------------------------------------- */
 .institute-header {
     margin-bottom: 20px;
 }
 
-.institute-header .institute-logo {
+.institute-logo-row {
+    margin-bottom: 8px;
+}
+
+.institute-logo-row .institute-logo {
+    display: inline-block;
     height: auto;
     max-width: 100%;
-    margin-bottom: 10px;
-}
-
-/* Center/right alignment also centers or right-aligns the logo itself */
-.institute-header[style*="center"] .institute-logo {
-    margin-left: auto;
-    margin-right: auto;
-    display: block;
-}
-
-.institute-header[style*="right"] .institute-logo {
-    margin-left: auto;
-    margin-right: 0;
-    display: block;
 }
 
 .institute-header .institute-title {
@@ -55,6 +50,17 @@
 .admission-status-message {
     text-align: center;
     padding: 20px;
+}
+
+/* --------------------------------------------------------------------------
+   Honeypot field — invisible to real applicants, present for bots.
+   -------------------------------------------------------------------------- */
+.adm-mgr-honeypot {
+    position: absolute !important;
+    left: -9999px !important;
+    top: -9999px !important;
+    height: 0;
+    overflow: hidden;
 }
 
 .admission-form-wrapper fieldset {
@@ -113,9 +119,77 @@
     text-transform: uppercase;
 }
 
-.adm-mgr-toolbar {
-    text-align: right;
-    margin-bottom: 10px;
+/* --------------------------------------------------------------------------
+   Desktop row grouping: related, naturally-short fields sit inline on one
+   row. Each .adm-row is a flex container; fields wrap naturally on
+   narrower viewports via the mobile override further down.
+   -------------------------------------------------------------------------- */
+.adm-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0 10px;
+}
+
+.adm-row label {
+    flex: 0 0 auto;
+}
+
+.adm-row label.adm-field-grow {
+    flex: 1 1 260px;
+}
+
+.adm-input-narrow {
+    width: 140px;
+}
+
+.adm-field-full {
+    width: 100%;
+}
+
+/* Name + live photo preview, side by side */
+.adm-row-name-photo {
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.adm-photo-preview-slot {
+    flex: 0 0 auto;
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.adm-photo-preview-label {
+    display: block;
+    font-size: 0.75em;
+    color: #7f8c8d;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.adm-photo-preview-box {
+    width: 110px;
+    height: 130px;
+    border: 1px dashed #bbb;
+    border-radius: 4px;
+    background: #fafafa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.adm-photo-preview-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.adm-photo-preview-placeholder {
+    font-size: 0.7em;
+    color: #999;
+    text-align: center;
+    padding: 0 8px;
 }
 
 .adm-mgr-disabled-submit {
@@ -178,11 +252,23 @@
     background: #2ecc71;
 }
 
+/* --------------------------------------------------------------------------
+   Bottom action bar: Print on the left, Submit on the right.
+   -------------------------------------------------------------------------- */
+.adm-mgr-bottom-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 .print-btn {
     background: #3498db;
     color: white;
     border: none;
-    padding: 6px 12px;
+    padding: 10px 18px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
@@ -195,6 +281,23 @@
 .print-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.adm-mgr-bottom-bar input[type="submit"],
+.adm-mgr-bottom-bar input[type="button"] {
+    margin-left: auto;
+    background: #2c3e50;
+    color: #fff;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.adm-mgr-bottom-bar input[type="submit"]:hover {
+    background: #1a252f;
 }
 
 .admission-message {
@@ -255,7 +358,8 @@
 
 /* ==========================================================================
    Mobile: collapse outer padding/margins so the form uses the full
-   available width instead of leaving large empty gutters on each side.
+   available width instead of leaving large empty gutters on each side,
+   and stack the inline desktop rows into single-column fields.
    ========================================================================== */
 @media (max-width: 768px) {
     .admission-form-wrapper {
@@ -275,6 +379,25 @@
         display: block;
         margin-right: 0;
         margin-bottom: 15px;
+    }
+
+    .adm-row {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .adm-input-narrow {
+        width: 100%;
+    }
+
+    .adm-row-name-photo {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    .adm-row-name-photo label {
+        flex: 1 1 auto;
+        margin-bottom: 0;
     }
 
     .academic-row {
@@ -310,6 +433,16 @@
         flex-direction: column;
         align-items: stretch;
     }
+
+    .adm-mgr-bottom-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .adm-mgr-bottom-bar input[type="submit"],
+    .adm-mgr-bottom-bar input[type="button"] {
+        margin-left: 0;
+    }
 }
 
 @media (max-width: 480px) {
@@ -320,66 +453,9 @@
     .admission-form-wrapper fieldset {
         padding: 10px;
     }
-}
 
-/* ==========================================================================
-   Print styles — header reflects the same adjustable logo/title/tagline
-   settings used on screen.
-   ========================================================================== */
-@media print {
-    body * {
-        visibility: hidden;
-    }
-
-    .admission-form-wrapper,
-    .admission-form-wrapper * {
-        visibility: visible;
-    }
-
-    .admission-form-wrapper {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        max-width: 100%;
-        margin: 0;
-        padding: 0;
-        background: #fff;
-    }
-
-    .admission-form-wrapper .print-btn,
-    .admission-form-wrapper input[type="submit"],
-    .admission-form-wrapper #add-academic-row,
-    .admission-form-wrapper .remove-row,
-    .admission-form-wrapper .note,
-    .admission-form-wrapper .adm-mgr-toolbar,
-    #form-message {
-        display: none !important;
-    }
-
-    .institute-header {
-        margin-bottom: 16px;
-        padding-bottom: 12px;
-        border-bottom: 2px solid #2c3e50;
-    }
-
-    .admission-form-wrapper fieldset {
-        break-inside: avoid;
-        page-break-inside: avoid;
-        border: 1px solid #999;
-    }
-
-    .academic-row {
-        break-inside: avoid;
-        background: #fff !important;
-        border: 1px solid #999;
-    }
-
-    input, textarea, select {
-        border: none;
-        background: transparent;
-        box-shadow: none;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+    .adm-photo-preview-box {
+        width: 90px;
+        height: 105px;
     }
 }

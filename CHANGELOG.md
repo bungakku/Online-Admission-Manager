@@ -5,6 +5,32 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] - 2026-08-31
+
+### Fixed
+- Fatal error on PHP 7.4–7.4.x: `adm_mgr_fetch_latest_release()` called `str_ends_with()`, which was only introduced in PHP 8.0, despite the plugin declaring `Requires PHP: 7.4`. This function runs from the update-checker on effectively every wp-admin page load once a release has assets, so on PHP 7.4 hosts it produced a fatal error (`Call to undefined function str_ends_with()`) instead of a graceful check. Replaced with a 7.4-safe `substr()` comparison. No functional or schema changes otherwise.
+
+## [1.1.0] - 2026-06-27
+
+### Added
+- Independent alignment and sizing for the logo, title, and tagline — previously they shared a single alignment setting that didn't actually separate them visually.
+- New print preview: "Print Form" opens a dedicated tab built from the form's current values (not the live inputs themselves), including a live preview of the uploaded passport photo shown next to the applicant's name.
+- Desktop field grouping: related short fields (contact numbers, nationality/Aadhar/country, sex/blood group, etc.) lay out inline in a single row on desktop and stack on mobile.
+- Aadhar number encryption at rest (libsodium `crypto_secretbox`, falling back to OpenSSL AES-256-GCM), with masked display (last 4 digits) in the admin panel and CSV export, and an admin-only "Reveal" action that is logged.
+- Honeypot field and per-IP rate limiting (5 submissions / 10 minutes) on the public form to cut down on bot/spam entries.
+- GitHub Releases-based update checker: the plugin now appears with normal WordPress "update available" notices, version details, and one-click "Update now", checked every 12 hours or on demand via a "Check for Updates" button in Settings.
+- DB migrations now also run on plugin **update** (via `plugins_loaded` + a stored DB version check), not only on activation.
+
+### Changed
+- Print/Submit buttons moved to the bottom of the form: Print on the left, Submit on the right.
+- Settings page's Header/Branding section reorganized so each element's (logo/title/tagline) controls — image/text, size, alignment — are grouped together.
+- Uploads directory `.htaccess` rewritten to only block script execution and directory listing, not all direct file access (see Fixed).
+
+### Fixed
+- **Printing produced a blank page with no entered data.** The previous implementation tried to print the live form via `visibility`/`position` CSS tricks; browsers do not reliably render `<input>`/`<textarea>` values when printed this way. Printing is now a static, pre-rendered snapshot built from the form's actual values at click-time.
+- **Header alignment had no real effect / wasn't independent.** Logo, title, and tagline now each carry their own `text-align`, set from three separate Settings controls instead of one shared one.
+- **Uploads directory `.htaccess` blocked all direct access**, including the admin panel's own "View" links to uploaded photos/documents (an unreported but real bug introduced in 1.0.0). It now only blocks execution of script-like file extensions.
+
 ## [1.0.0] - 2026-06-27
 
 ### Added

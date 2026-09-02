@@ -1,10 +1,10 @@
 === Online Admission Manager ===
-Contributors: Biswajit Thokchom
+Contributors: biswazit
 Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,15 +18,18 @@ Online Admission Manager adds a fully featured admission/enquiry form to any pag
 
 * Single shortcode: `[admission_form]`
 * Personal information, parents' details, addresses, academic history (repeatable rows), and document uploads in one form
-* Adjustable header: upload your own logo, set its width, edit the institute title and an optional tagline, choose font sizes and alignment — all from Settings
-* The same header (logo, title, tagline) is reproduced on the printed form
-* "Print Form" button so applicants can print a hard copy of what they entered
-* File uploads (photo, payment proof, scanned documents) capped at 300KB per file, validated by both extension and actual file content
+* Adjustable header: upload your own logo, set its width, edit the institute title and an optional tagline — logo, title, and tagline each have their own independent alignment and size, all from Settings with a live preview
+* A "Print Form" button opens a clean, read-only print preview in a new tab, populated with everything entered so far (including a live passport photo preview next to the applicant's name), ready to print or save as PDF
+* Related short fields (contact numbers, nationality/Aadhar/country, etc.) line up in a single row on desktop and stack automatically on mobile
+* File uploads (photo, payment proof, scanned documents) capped at 300KB per file, validated by extension, size, and actual file content
+* Aadhar numbers are encrypted at rest and masked in the admin panel and CSV exports; a "Reveal" button decrypts on demand for authorized admins, with access logging
+* A honeypot field and basic per-IP rate limiting help filter out bot submissions
 * Admission window control — set a start/end date and the form automatically disables itself outside that window
 * Email confirmation to the applicant plus a notification to the admin on every submission
 * Admin panel to browse, view, and delete submissions, with CSV export of everything (including academic records)
 * Optional payment QR code shown next to the payment-proof upload field
 * Mobile-friendly, edge-to-edge responsive layout
+* Built-in update checker against GitHub Releases, so WordPress shows update notifications the same way it would for a wordpress.org-hosted plugin
 
 **Shortcode**
 
@@ -43,13 +46,17 @@ Add this to any page or post:
 
 == Frequently Asked Questions ==
 
-= Can I change the logo size? =
+= Can I position the logo, title, and tagline independently? =
 
-Yes. Go to Admissions → Settings → Header / Branding and use the Logo Width slider. The live preview shows the result immediately, and the same width is used when the form is printed.
+Yes. Each one has its own alignment (left/center/right), and the logo and the two text elements each have their own size control, all in Admissions → Settings → Header / Branding, with a live preview.
 
-= Does the printed form show my logo and title? =
+= Does printing show the data the applicant entered? =
 
-Yes. The print stylesheet reuses the same header settings (logo, title, tagline, sizes, alignment) configured in Settings.
+Yes. Clicking "Print Form" opens a new tab with a clean summary of everything filled in so far — including a preview of the uploaded passport photo next to the applicant's name — ready to print or save as a PDF. Nothing is sent to the server to generate this; it's built entirely from what's currently in the browser.
+
+= Is the Aadhar number printed on the form? =
+
+No — by design. The Aadhar number is collected and stored (encrypted) but deliberately left off the print preview, since printed pages are easy to misplace or photograph. It remains visible (masked, with an admin-only "Reveal" option) in the admin panel.
 
 = What happens to applications if I deactivate or delete the plugin? =
 
@@ -59,13 +66,32 @@ By default, nothing is deleted — your submissions, uploaded files, and setting
 
 300KB per file (passport photo, payment proof, and each scanned document). This is enforced both in the browser and on the server.
 
+= How do plugin updates work? =
+
+The plugin checks the GitHub repository's Releases for a newer version every 12 hours, and you can also click "Check for Updates" in Settings for an immediate check. When a newer release is found, it shows up on the normal Plugins page with an "Update now" link, just like a wordpress.org plugin.
+
 == Screenshots ==
 
-1. Admission form with adjustable header.
+1. Admission form with independently adjustable logo, title, and tagline.
 2. Settings page with live header preview.
-3. Admin entries list with CSV export.
+3. Print preview tab showing entered data and photo.
+4. Admin entries list with CSV export.
 
 == Changelog ==
+
+= 1.1.1 =
+* Fixed a fatal error on PHP 7.4–7.4.x: the update checker used `str_ends_with()`, a PHP 8.0+ function, despite the plugin declaring `Requires PHP: 7.4`. Replaced with a 7.4-compatible check.
+
+= 1.1.0 =
+* Logo, title, and tagline now have fully independent alignment and sizing, instead of sharing one alignment setting.
+* Reworked "Print Form" to open a dedicated print-preview tab populated with the applicant's actual entered data and a live preview of the uploaded passport photo next to their name — the previous approach attempted to print the live form directly, which most browsers do not render reliably for input/textarea values.
+* Print and Submit buttons moved to the bottom of the form, side by side (Print on the left, Submit on the right).
+* Related short fields (e.g. WhatsApp/alternate numbers, nationality/Aadhar/country) are grouped into a single inline row on desktop, and stack automatically on narrower screens.
+* Aadhar numbers are now encrypted at rest (libsodium, with an OpenSSL AES-256-GCM fallback) and shown masked in the admin panel and CSV export; a "Reveal" button decrypts on demand and logs the access.
+* Added a honeypot field and basic per-IP rate limiting on form submission to reduce bot/spam entries.
+* Corrected the uploads-folder `.htaccess`: the previous rule blocked all direct access, including the admin panel's own "View" links to uploaded files; it now only blocks script execution and directory listing.
+* Added a GitHub Releases-based update checker, so available updates show on the normal Plugins page with release notes and one-click install.
+* Various hardening: DB schema migrations now run safely on update (not just on activation), and several smaller escaping/consistency fixes.
 
 = 1.0.0 =
 * First public release.
@@ -85,10 +111,6 @@ Fixes a fatal error on PHP 7.4 sites (undefined function in the update checker).
 
 = 1.1.0 =
 Aadhar numbers are now encrypted going forward; existing entries are read and displayed normally and become encrypted the next time they're saved. No action needed, but back up your database before updating as good practice.
-
-== Credits ==
-
-Developed by Biswajit – https://biswazit.in
 
 == Credits ==
 
