@@ -2,7 +2,7 @@
 
 A WordPress plugin that adds a complete online admission/enquiry form to any page via a shortcode — built for schools, colleges, and coaching institutes.
 
-[![Release](https://img.shields.io/badge/release-v1.1.1-blue.svg)](https://github.com/bungakku/Online-Admission-Manager/releases)
+[![Release](https://img.shields.io/badge/release-v1.1.2-blue.svg)](https://github.com/bungakku/Online-Admission-Manager/releases)
 [![License: GPL v2+](https://img.shields.io/badge/license-GPLv2%2B-green.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 
 ## Features
@@ -79,4 +79,4 @@ GPL v2 or later — see [LICENSE](LICENSE).
 
 == Credits ==
 
-Developed by Biswajit – https://biswazit.in
+Developed by Biswajit – https://github.com/bungakku/Online-Admission-Manager

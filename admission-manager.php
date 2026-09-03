@@ -3,11 +3,11 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.
- * Version:           1.1.1
+ * Version:           1.1.2
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
- * Author URI:        https://biswazit.in
+ * Author URI:        https://github.com/bungakku/Online-Admission-Manager
  * License:           GPL v2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       admission-mgr
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.1');
+define('ADM_MGR_VERSION', '1.1.2');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -164,7 +164,7 @@ function adm_mgr_plugins_api_details($result, $action, $args) {
         'name'          => 'Online Admission Manager',
         'slug'          => dirname(ADM_MGR_BASENAME),
         'version'       => $release['version'],
-        'author'        => '<a href="https://biswazit.in">Biswajit Thokchom</a>',
+        'author'        => '<a href="https://github.com/' . ADM_MGR_GITHUB_OWNER . '/' . ADM_MGR_GITHUB_REPO . '">Biswajit Thokchom</a>',
         'homepage'      => 'https://github.com/' . ADM_MGR_GITHUB_OWNER . '/' . ADM_MGR_GITHUB_REPO,
         'sections'      => array(
             'description' => __('Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.', 'admission-mgr'),
@@ -218,6 +218,72 @@ function adm_mgr_handle_manual_update_check() {
 
     wp_safe_redirect(add_query_arg('adm_mgr_update_checked', '1', wp_get_referer() ?: admin_url('admin.php?page=admission-settings')));
     exit;
+}
+
+/**
+ * Show the "Checked GitHub for the latest release" confirmation regardless
+ * of which admin page the manual check redirected back to (Plugins list or
+ * Admissions → Settings), since the action link below is reachable from
+ * either place.
+ */
+add_action('admin_notices', 'adm_mgr_update_checked_notice');
+function adm_mgr_update_checked_notice() {
+    if (!isset($_GET['adm_mgr_update_checked']) || !current_user_can('update_plugins')) {
+        return;
+    }
+    echo '<div class="notice notice-info is-dismissible"><p>' . esc_html__('Online Admission Manager: checked GitHub for the latest release.', 'admission-mgr') . '</p></div>';
+}
+
+/**
+ * Add a "Check for updates" action link on the Plugins list row (next to
+ * Deactivate), so an on-demand check doesn't require visiting
+ * Admissions → Settings first. Reuses the same handler/nonce as the
+ * Settings page button.
+ */
+add_filter('plugin_action_links_' . ADM_MGR_BASENAME, 'adm_mgr_plugin_action_links');
+function adm_mgr_plugin_action_links($links) {
+    if (!current_user_can('update_plugins')) {
+        return $links;
+    }
+    $check_url = wp_nonce_url(admin_url('admin-post.php?action=adm_mgr_check_updates'), 'adm_mgr_check_updates');
+    $links[] = '<a href="' . esc_url($check_url) . '">' . esc_html__('Check for updates', 'admission-mgr') . '</a>';
+    return $links;
+}
+
+/**
+ * Replace WordPress's default "Visit plugin site" row-meta link (derived
+ * from the Plugin URI header) with a "View details" thickbox link, matching
+ * the UX of WordPress.org-hosted plugins. Uses our own
+ * adm_mgr_plugins_api_details() filter above, which already returns real
+ * version/description/changelog data fetched from GitHub.
+ */
+add_filter('plugin_row_meta', 'adm_mgr_plugin_row_meta', 10, 2);
+function adm_mgr_plugin_row_meta($plugin_meta, $plugin_file) {
+    if (ADM_MGR_BASENAME !== $plugin_file) {
+        return $plugin_meta;
+    }
+
+    foreach ($plugin_meta as $key => $value) {
+        if (false !== strpos($value, 'Visit plugin site')) {
+            unset($plugin_meta[$key]);
+        }
+    }
+
+    $slug = dirname(ADM_MGR_BASENAME);
+    $details_url = network_admin_url(
+        'plugin-install.php?tab=plugin-information&plugin=' . $slug .
+        '&section=changelog&TB_iframe=true&width=600&height=800'
+    );
+
+    $plugin_meta[] = sprintf(
+        '<a href="%s" class="thickbox open-plugin-details-modal" aria-label="%s" data-title="%s">%s</a>',
+        esc_url($details_url),
+        esc_attr(sprintf(__('More information about %s', 'admission-mgr'), 'Online Admission Manager')),
+        esc_attr('Online Admission Manager'),
+        esc_html__('View details', 'admission-mgr')
+    );
+
+    return array_values($plugin_meta);
 }
 
 /**
@@ -669,10 +735,6 @@ function adm_mgr_settings_page() {
     ?>
     <div class="wrap adm-mgr-settings-wrap">
         <h1><?php esc_html_e('Admission Form Settings', 'admission-mgr'); ?></h1>
-
-        <?php if (isset($_GET['adm_mgr_update_checked'])) : ?>
-            <div class="notice notice-info is-dismissible"><p><?php esc_html_e('Checked GitHub for the latest release.', 'admission-mgr'); ?></p></div>
-        <?php endif; ?>
 
         <div class="adm-mgr-version-box">
             <p>

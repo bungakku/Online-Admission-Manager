@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.2] - 2026-09-02
+
+### Changed
+- Replaced all references to the author's personal domain (`https://biswazit.in`, which is being retired) with this GitHub repository URL: plugin header `Author URI`, the `plugins_api` "View version details" info popup, `readme.txt` Credits, and `README.md` Credits. No functional or database changes.
+- Plugins list page: added a "Check for updates" action link next to Deactivate/Settings, reusing the same handler and nonce as the existing button in Admissions → Settings, so an on-demand check no longer requires navigating there first.
+- Plugins list page: replaced the default "Visit plugin site" row-meta link (derived from the `Plugin URI` header) with "View details", matching the convention used by WordPress.org-hosted plugins. Opens the existing `plugins_api` thickbox populated with live version/changelog data from GitHub.
+- Moved the "Checked GitHub for the latest release" confirmation notice to a global `admin_notices` hook so it displays correctly regardless of whether the manual check was triggered from Settings or the new Plugins-list link.
+
 ## [1.1.1] - 2026-08-31
 
 ### Fixed

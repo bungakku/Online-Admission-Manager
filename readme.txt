@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,11 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 
 == Changelog ==
 
+= 1.1.2 =
+* Author URI now points to this GitHub repository instead of biswazit.in, which is being retired. Updated in the plugin header, the "View version details" info popup, readme.txt, and README.md.
+* Plugins list page: added a "Check for updates" action link next to Deactivate, so an on-demand check no longer requires visiting Admissions → Settings first.
+* Plugins list page: replaced the default "Visit plugin site" meta link with "View details", matching the convention used by WordPress.org-hosted plugins — opens the same information popup with live release notes.
+
 = 1.1.1 =
 * Fixed a fatal error on PHP 7.4–7.4.x: the update checker used `str_ends_with()`, a PHP 8.0+ function, despite the plugin declaring `Requires PHP: 7.4`. Replaced with a 7.4-compatible check.
 
@@ -106,6 +111,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 
 == Upgrade Notice ==
 
+= 1.1.2 =
+Author link updated from biswazit.in (retiring) to this GitHub repository. Plugins list page now has a "Check for updates" link and a "View details" link (replacing "Visit plugin site"). No database changes.
+
 = 1.1.1 =
 Fixes a fatal error on PHP 7.4 sites (undefined function in the update checker). Recommended for everyone, required if your host runs PHP 7.4.
 
@@ -114,4 +122,4 @@ Aadhar numbers are now encrypted going forward; existing entries are read and di
 
 == Credits ==
 
-Developed by Biswajit – https://biswazit.in
+Developed by Biswajit – https://github.com/bungakku/Online-Admission-Manager
