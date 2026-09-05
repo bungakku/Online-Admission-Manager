@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.2
+Stable tag: 1.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 
 == Changelog ==
 
+= 1.1.3 =
+* Security: Aadhar numbers saved before v1.1.0 (when encryption was introduced) were never migrated and remained in plaintext in the database indefinitely. Added an automatic, one-time, self-healing migration that encrypts any remaining plaintext Aadhar numbers and backfills the masked last-4-digits field, running quietly in small batches on normal admin page loads. A one-time success notice confirms how many records were migrated.
+
 = 1.1.2 =
 * Author URI now points to this GitHub repository instead of biswazit.in, which is being retired. Updated in the plugin header, the "View version details" info popup, readme.txt, and README.md.
 * Plugins list page: added a "Check for updates" action link next to Deactivate, so an on-demand check no longer requires visiting Admissions → Settings first.
@@ -110,6 +113,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.3 =
+Security fix: any Aadhar numbers still stored in plaintext from before v1.1.0 are now automatically encrypted in the background. No action needed, but back up your database before updating as good practice — this update writes to existing records.
 
 = 1.1.2 =
 Author link updated from biswazit.in (retiring) to this GitHub repository. Plugins list page now has a "Check for updates" link and a "View details" link (replacing "Visit plugin site"). No database changes.

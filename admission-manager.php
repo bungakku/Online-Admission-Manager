@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.
- * Version:           1.1.2
+ * Version:           1.1.3
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.2');
+define('ADM_MGR_VERSION', '1.1.3');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -423,6 +423,7 @@ function adm_mgr_uninstall() {
         'adm_mgr_logo_align', 'adm_mgr_title_align', 'adm_mgr_tagline_align',
         'adm_mgr_encryption_secret', 'adm_mgr_aadhar_access_log',
         'adm_mgr_activated_version', 'adm_mgr_github_token',
+        'adm_mgr_aadhar_migration_done', 'adm_mgr_aadhar_migrated_count',
     );
     foreach ($options as $option) {
         delete_option($option);
@@ -592,6 +593,114 @@ function adm_mgr_ajax_reveal_aadhar() {
     update_option('adm_mgr_aadhar_access_log', $log, false);
 
     wp_send_json_success(array('aadhar' => $plain));
+}
+
+/**
+ * ---------------------------------------------------------------------------
+ * One-time migration: encrypt Aadhar numbers that were stored in plaintext
+ * before v1.1.0 introduced encryption.
+ *
+ * This is a data migration, not a schema change (the aadhar_last4 column
+ * already exists as of the v1.1.0 schema), so it's gated by its own
+ * "done" flag rather than ADM_MGR_DB_VERSION. It runs in small batches on
+ * normal admin page loads rather than all at once during activation/update,
+ * so it can't time out on a large table. It's also safe to run repeatedly:
+ * each pass only ever selects rows that don't already look like ciphertext
+ * (sb1:/gcm1: prefix), so already-migrated rows are automatically skipped,
+ * and the "done" flag is only set once a pass finds nothing left to do.
+ * ---------------------------------------------------------------------------
+ */
+add_action('plugins_loaded', 'adm_mgr_migrate_legacy_aadhar');
+function adm_mgr_migrate_legacy_aadhar() {
+    if (!is_admin() || get_option('adm_mgr_aadhar_migration_done')) {
+        return;
+    }
+
+    global $wpdb;
+    $table = $wpdb->prefix . 'admission_submissions';
+    $batch_size = 200;
+
+    $rows = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT id, aadhar_number FROM $table
+             WHERE aadhar_number != ''
+               AND aadhar_number NOT LIKE 'sb1:%%'
+               AND aadhar_number NOT LIKE 'gcm1:%%'
+             ORDER BY id ASC
+             LIMIT %d",
+            $batch_size
+        )
+    );
+
+    if (empty($rows)) {
+        // Nothing left to migrate — including brand-new sites with zero
+        // submissions. Mark done so every future admin page load skips
+        // this query entirely instead of re-scanning the table.
+        update_option('adm_mgr_aadhar_migration_done', '1', false);
+
+        $total = (int) get_option('adm_mgr_aadhar_migrated_count', 0);
+        if ($total > 0) {
+            set_transient('adm_mgr_aadhar_migration_notice', $total, DAY_IN_SECONDS);
+        }
+        return;
+    }
+
+    foreach ($rows as $row) {
+        $plaintext = $row->aadhar_number;
+        $encrypted = adm_mgr_encrypt($plaintext);
+
+        // If encryption is unavailable for some reason, leave this row
+        // untouched and retry on the next page load rather than risk
+        // losing or corrupting the value.
+        if (false === $encrypted || '' === $encrypted) {
+            continue;
+        }
+
+        $last4 = '';
+        if (preg_match('/([0-9]{4})$/', $plaintext, $m)) {
+            $last4 = $m[1];
+        }
+
+        $wpdb->update(
+            $table,
+            array(
+                'aadhar_number' => $encrypted,
+                'aadhar_last4'  => $last4,
+            ),
+            array('id' => $row->id)
+        );
+
+        $total = (int) get_option('adm_mgr_aadhar_migrated_count', 0) + 1;
+        update_option('adm_mgr_aadhar_migrated_count', $total, false);
+    }
+}
+
+/**
+ * One-time admin notice confirming the legacy Aadhar migration completed,
+ * so the site owner has visibility into what changed rather than it
+ * happening silently in the background.
+ */
+add_action('admin_notices', 'adm_mgr_aadhar_migration_notice');
+function adm_mgr_aadhar_migration_notice() {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+    $count = get_transient('adm_mgr_aadhar_migration_notice');
+    if (false === $count) {
+        return;
+    }
+    delete_transient('adm_mgr_aadhar_migration_notice');
+
+    echo '<div class="notice notice-success is-dismissible"><p>' . esc_html(sprintf(
+        /* translators: %d: number of records */
+        _n(
+            'Online Admission Manager: encrypted %d existing Aadhar number that was stored before encryption was introduced in v1.1.0. No further action is needed.',
+            'Online Admission Manager: encrypted %d existing Aadhar numbers that were stored before encryption was introduced in v1.1.0. No further action is needed.',
+            $count,
+            'admission-mgr'
+        ),
+        $count
+    )) . '</p></div>';
 }
 
 /**

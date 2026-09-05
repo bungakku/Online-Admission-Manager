@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.3] - 2026-09-05
+
+### Security
+- Aadhar numbers saved before v1.1.0 (when encryption at rest was introduced) were never migrated and remained in plaintext in the `aadhar_number` column indefinitely — the encryption feature only applied to new submissions going forward. Added `adm_mgr_migrate_legacy_aadhar()`, a one-time, self-healing migration hooked to `plugins_loaded`: it selects rows whose `aadhar_number` doesn't already look like ciphertext (no `sb1:`/`gcm1:` prefix), encrypts them in place, and backfills `aadhar_last4` from the plaintext before overwriting it. Runs in batches of 200 on normal admin page loads (not all at once during activation) so it can't time out on a large table, and is idempotent — safe to run repeatedly, and automatically resumes if interrupted. A one-time `admin_notices` message confirms how many records were migrated once the pass completes with nothing left to do.
+- Added `adm_mgr_aadhar_migration_done` and `adm_mgr_aadhar_migrated_count` options (cleaned up on uninstall alongside the plugin's other options).
+
 ## [1.1.2] - 2026-09-02
 
 ### Changed
