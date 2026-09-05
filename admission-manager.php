@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.
- * Version:           1.1.3
+ * Version:           1.1.4
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.3');
+define('ADM_MGR_VERSION', '1.1.4');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -136,9 +136,23 @@ function adm_mgr_inject_update_transient($transient) {
             'package'     => $release['download_url'],
             'tested'      => get_bloginfo('version'),
         );
+        unset($transient->no_update[ADM_MGR_BASENAME]);
     } else {
-        // Make sure we don't leave a stale "update available" entry around
-        // if the admin already updated some other way.
+        // Explicitly mark as "checked, no update needed" rather than just
+        // removing it from response. WordPress core distinguishes "not
+        // checked yet" from "checked, up to date" by whether a plugin is
+        // present in no_update — leaving it in neither array is a known
+        // source of inconsistent update-available state between different
+        // admin screens (e.g. the Dashboard vs. the Plugins list), since
+        // they don't all key off response alone.
+        $transient->no_update[ADM_MGR_BASENAME] = (object) array(
+            'slug'        => dirname(ADM_MGR_BASENAME),
+            'plugin'      => ADM_MGR_BASENAME,
+            'new_version' => ADM_MGR_VERSION,
+            'url'         => 'https://github.com/' . ADM_MGR_GITHUB_OWNER . '/' . ADM_MGR_GITHUB_REPO,
+            'package'     => '',
+            'tested'      => get_bloginfo('version'),
+        );
         unset($transient->response[ADM_MGR_BASENAME]);
     }
 
@@ -200,6 +214,40 @@ function adm_mgr_fix_github_zip_foldername($source, $remote_source, $upgrader, $
     }
 
     return $source;
+}
+
+/**
+ * WordPress's own post-upgrade cleanup (wp_clean_plugins_cache()) clears
+ * its shared update_plugins transient, but has no way to know about our
+ * separate, plugin-specific 12-hour GitHub-release cache. If that cache
+ * was populated even slightly before this upgrade finished, a screen that
+ * reads it before the next natural 12-hour refresh could show stale
+ * status — which is a plausible cause of "still shows Update Available in
+ * one admin screen right after updating from another." Closing that gap
+ * directly: the moment WordPress finishes updating this specific plugin,
+ * force-clear both caches so every screen re-checks from scratch.
+ */
+add_action('upgrader_process_complete', 'adm_mgr_refresh_after_update', 10, 2);
+function adm_mgr_refresh_after_update($upgrader, $hook_extra) {
+    if (empty($hook_extra['action']) || 'update' !== $hook_extra['action']
+        || empty($hook_extra['type']) || 'plugin' !== $hook_extra['type']
+    ) {
+        return;
+    }
+
+    $updated_plugins = array();
+    if (!empty($hook_extra['plugins']) && is_array($hook_extra['plugins'])) {
+        $updated_plugins = $hook_extra['plugins']; // Bulk update.
+    } elseif (!empty($hook_extra['plugin'])) {
+        $updated_plugins = array($hook_extra['plugin']); // Single update.
+    }
+
+    if (!in_array(ADM_MGR_BASENAME, $updated_plugins, true)) {
+        return;
+    }
+
+    delete_transient('adm_mgr_latest_release');
+    delete_site_transient('update_plugins');
 }
 
 /**

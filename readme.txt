@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.3
+Stable tag: 1.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 
 == Changelog ==
 
+= 1.1.4 =
+* Fixed an update-checker inconsistency where a plugin update could still show as "Available" on one admin screen (e.g. the Plugins list) after already being applied from another (e.g. the Dashboard), requiring the update to be triggered twice. Two changes: the plugin is now explicitly marked "checked, up to date" (not just removed from the update list) so different WordPress admin screens agree on its status; and our own release-info cache is now force-cleared the moment WordPress finishes updating this plugin, so every screen re-checks fresh instead of possibly reading a cache from just before the update completed.
+
 = 1.1.3 =
 * Security: Aadhar numbers saved before v1.1.0 (when encryption was introduced) were never migrated and remained in plaintext in the database indefinitely. Added an automatic, one-time, self-healing migration that encrypts any remaining plaintext Aadhar numbers and backfills the masked last-4-digits field, running quietly in small batches on normal admin page loads. A one-time success notice confirms how many records were migrated.
 
@@ -113,6 +116,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.4 =
+Fixes the update checker sometimes requiring the update to be applied twice (once from the Dashboard, again from the Plugins list) before it stopped showing as available. No database changes.
 
 = 1.1.3 =
 Security fix: any Aadhar numbers still stored in plaintext from before v1.1.0 are now automatically encrypted in the background. No action needed, but back up your database before updating as good practice — this update writes to existing records.

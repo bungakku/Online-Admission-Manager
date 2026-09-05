@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.4] - 2026-09-05
+
+### Fixed
+- Update-checker inconsistency: a pending update could show as "Available" on one admin screen (e.g. Plugins list) even after already being applied from another (e.g. the Dashboard's Updates page), requiring the update to be triggered a second time before it cleared everywhere. Two contributing gaps addressed in `adm_mgr_inject_update_transient()` and a new `adm_mgr_refresh_after_update()`:
+  - When up to date, the plugin is now explicitly written into `$transient->no_update` (not just removed from `$transient->response`). WordPress core distinguishes "not yet checked" from "checked, no update" by presence in `no_update`, and different admin screens don't all key off `response` alone — leaving a plugin in neither array is a known source of cross-screen inconsistency for custom (non-wordpress.org) update checkers.
+  - Added an `upgrader_process_complete` hook that force-clears both our own 12-hour `adm_mgr_latest_release` cache and WordPress's shared `update_plugins` transient the moment this plugin finishes updating (single or bulk update). WordPress's own post-upgrade cleanup only clears its own transient — it has no way to know about our plugin-specific cache, which could otherwise still be serving a response computed just before the upgrade completed.
+- Verified both changes with an isolated test harness (extracted the real functions, mocked `$wpdb`/transients) covering: up-to-date vs. update-available transient shape, a stale `response` entry being correctly cleared on re-check, and the post-upgrade hook correctly firing only for this plugin across single-update, bulk-update, wrong-plugin, wrong-type, and install (non-update) scenarios.
+
 ## [1.1.3] - 2026-09-05
 
 ### Security
