@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.5] - 2026-09-05
+
+### Fixed
+- Regression from v1.1.4: a duplicate "View details" link appeared on the Plugins list row (confirmed via screenshot — both labeled identically, present even with no update pending). Root cause: populating `$transient->no_update[ADM_MGR_BASENAME]` in v1.1.4 (needed to fix cross-screen update-status consistency) is the same signal WordPress core uses to decide whether to render its own native "View details" thickbox link — which started appearing alongside the one `adm_mgr_plugin_row_meta()` added manually since v1.1.2. Simplified that function to only remove the default "Visit plugin site" link; WordPress's now-automatic native "View details" link already correctly uses this plugin's `adm_mgr_plugins_api_details()` data. (This same v1.1.4 change is also why an "Enable/Disable auto-updates" toggle started appearing — both are WordPress core features gated on the same no_update/response presence check.)
+- Further strengthened the v1.1.4 fix for the update sometimes requiring two separate "Update Now" actions (e.g. once from the Dashboard, again from the Plugins list) before it cleared everywhere: `adm_mgr_refresh_after_update()` now calls `wp_update_plugins()` directly and synchronously right after clearing both caches, forcing an immediate rebuild of the transient within the same request — rather than clearing it and relying on whichever admin screen happens to be visited next to trigger the rebuild.
+- Verified both changes with the same isolated test-harness approach used for prior fixes (extracted the real functions, mocked transients/`wp_update_plugins()`): confirmed the row-meta function now returns exactly one link removal and adds nothing, and confirmed the refresh hook now calls `wp_update_plugins()` exactly once and leaves the transient freshly rebuilt rather than empty.
+
 ## [1.1.4] - 2026-09-05
 
 ### Fixed

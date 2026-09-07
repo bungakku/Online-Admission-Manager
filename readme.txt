@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.4
+Stable tag: 1.1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,10 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 
 == Changelog ==
 
+= 1.1.5 =
+* Fixed a duplicate "View details" link on the Plugins list page, introduced by v1.1.4: populating the update transient's "checked, up to date" data (needed for the previous fix) is also the signal WordPress uses to render its own native "View details" link, which was appearing alongside the one this plugin added manually. Removed the manual one; WordPress's native link already uses this plugin's real changelog data.
+* Strengthened the v1.1.4 fix for the update sometimes needing to be applied twice: after this plugin finishes updating, the update-check transient is now rebuilt immediately and synchronously in the same request, instead of waiting for the next admin page visit to trigger it.
+
 = 1.1.4 =
 * Fixed an update-checker inconsistency where a plugin update could still show as "Available" on one admin screen (e.g. the Plugins list) after already being applied from another (e.g. the Dashboard), requiring the update to be triggered twice. Two changes: the plugin is now explicitly marked "checked, up to date" (not just removed from the update list) so different WordPress admin screens agree on its status; and our own release-info cache is now force-cleared the moment WordPress finishes updating this plugin, so every screen re-checks fresh instead of possibly reading a cache from just before the update completed.
 
@@ -116,6 +120,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.5 =
+Fixes a duplicate "View details" link on the Plugins list (regression from v1.1.4) and further strengthens the fix for updates sometimes needing to be applied twice. No database changes.
 
 = 1.1.4 =
 Fixes the update checker sometimes requiring the update to be applied twice (once from the Dashboard, again from the Plugins list) before it stopped showing as available. No database changes.

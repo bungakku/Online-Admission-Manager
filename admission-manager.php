@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.
- * Version:           1.1.4
+ * Version:           1.1.5
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.4');
+define('ADM_MGR_VERSION', '1.1.5');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -225,7 +225,11 @@ function adm_mgr_fix_github_zip_foldername($source, $remote_source, $upgrader, $
  * status — which is a plausible cause of "still shows Update Available in
  * one admin screen right after updating from another." Closing that gap
  * directly: the moment WordPress finishes updating this specific plugin,
- * force-clear both caches so every screen re-checks from scratch.
+ * force-clear both caches AND immediately rebuild the transient
+ * synchronously, in this same request, rather than leaving it empty for
+ * whichever admin screen happens to be visited next. wp_update_plugins()
+ * is safe to call directly here — get_plugins()/plugin.php are already
+ * loaded by this point in the upgrade process.
  */
 add_action('upgrader_process_complete', 'adm_mgr_refresh_after_update', 10, 2);
 function adm_mgr_refresh_after_update($upgrader, $hook_extra) {
@@ -248,6 +252,10 @@ function adm_mgr_refresh_after_update($upgrader, $hook_extra) {
 
     delete_transient('adm_mgr_latest_release');
     delete_site_transient('update_plugins');
+
+    if (function_exists('wp_update_plugins')) {
+        wp_update_plugins();
+    }
 }
 
 /**
@@ -299,10 +307,14 @@ function adm_mgr_plugin_action_links($links) {
 }
 
 /**
- * Replace WordPress's default "Visit plugin site" row-meta link (derived
- * from the Plugin URI header) with a "View details" thickbox link, matching
- * the UX of WordPress.org-hosted plugins. Uses our own
- * adm_mgr_plugins_api_details() filter above, which already returns real
+ * Remove WordPress's default "Visit plugin site" row-meta link (derived
+ * from the Plugin URI header). As of v1.1.4, this plugin is present in
+ * the update transient's no_update/response arrays, which is also the
+ * signal WordPress core uses to decide whether to render its OWN native
+ * "View details" thickbox link automatically — so we no longer need to
+ * add one ourselves (doing so as well produced a duplicate "View details"
+ * link). WordPress's native link is correctly wired to our own
+ * adm_mgr_plugins_api_details() filter above, so it already shows real
  * version/description/changelog data fetched from GitHub.
  */
 add_filter('plugin_row_meta', 'adm_mgr_plugin_row_meta', 10, 2);
@@ -316,20 +328,6 @@ function adm_mgr_plugin_row_meta($plugin_meta, $plugin_file) {
             unset($plugin_meta[$key]);
         }
     }
-
-    $slug = dirname(ADM_MGR_BASENAME);
-    $details_url = network_admin_url(
-        'plugin-install.php?tab=plugin-information&plugin=' . $slug .
-        '&section=changelog&TB_iframe=true&width=600&height=800'
-    );
-
-    $plugin_meta[] = sprintf(
-        '<a href="%s" class="thickbox open-plugin-details-modal" aria-label="%s" data-title="%s">%s</a>',
-        esc_url($details_url),
-        esc_attr(sprintf(__('More information about %s', 'admission-mgr'), 'Online Admission Manager')),
-        esc_attr('Online Admission Manager'),
-        esc_html__('View details', 'admission-mgr')
-    );
 
     return array_values($plugin_meta);
 }
