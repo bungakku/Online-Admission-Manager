@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.
- * Version:           1.1.5
+ * Version:           1.1.6
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.5');
+define('ADM_MGR_VERSION', '1.1.6');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -921,6 +921,41 @@ function adm_mgr_settings_page() {
             <?php endif; ?>
         </div>
 
+        <?php
+        // ---------------------------------------------------------------
+        // Temporary diagnostics: shows exactly what WordPress's update
+        // transient currently holds for this plugin, so update-checker
+        // behavior (e.g. inconsistencies between admin screens) can be
+        // verified directly instead of guessed at. Read-only, no side
+        // effects — safe to leave in place.
+        // ---------------------------------------------------------------
+        $adm_mgr_transient = get_site_transient('update_plugins');
+        $adm_mgr_checked_version = isset($adm_mgr_transient->checked[ADM_MGR_BASENAME]) ? $adm_mgr_transient->checked[ADM_MGR_BASENAME] : null;
+        $adm_mgr_in_response = isset($adm_mgr_transient->response[ADM_MGR_BASENAME]);
+        $adm_mgr_in_no_update = isset($adm_mgr_transient->no_update[ADM_MGR_BASENAME]);
+        $adm_mgr_response_version = $adm_mgr_in_response ? $adm_mgr_transient->response[ADM_MGR_BASENAME]->new_version : null;
+        $adm_mgr_last_checked = isset($adm_mgr_transient->last_checked)
+            ? date_i18n('Y-m-d H:i:s', $adm_mgr_transient->last_checked) . ' (' . human_time_diff($adm_mgr_transient->last_checked) . ' ago)'
+            : 'not set';
+        $adm_mgr_our_cache = get_transient('adm_mgr_latest_release');
+        ?>
+        <details class="adm-mgr-diagnostics">
+            <summary><?php esc_html_e('Update-checker diagnostics (temporary)', 'admission-mgr'); ?></summary>
+            <table class="widefat striped" style="max-width:700px; margin-top:10px;">
+                <tbody>
+                    <tr><td><strong>ADM_MGR_VERSION (running code)</strong></td><td><?php echo esc_html(ADM_MGR_VERSION); ?></td></tr>
+                    <tr><td><strong>Transient: checked[] version</strong></td><td><?php echo esc_html($adm_mgr_checked_version ?? 'not set'); ?></td></tr>
+                    <tr><td><strong>Transient: last_checked</strong></td><td><?php echo esc_html($adm_mgr_last_checked); ?></td></tr>
+                    <tr><td><strong>In response[] (update available)?</strong></td><td><?php echo $adm_mgr_in_response ? 'YES — claims v' . esc_html($adm_mgr_response_version) : 'no'; ?></td></tr>
+                    <tr><td><strong>In no_update[] (confirmed current)?</strong></td><td><?php echo $adm_mgr_in_no_update ? 'YES' : 'no'; ?></td></tr>
+                    <tr><td><strong>Our own GitHub-release cache</strong></td><td><?php echo $adm_mgr_our_cache ? esc_html('cached: v' . ($adm_mgr_our_cache['version'] ?? '?')) : 'empty / expired'; ?></td></tr>
+                    <tr><td><strong>Current admin screen</strong></td><td><?php echo esc_html($GLOBALS['pagenow'] ?? 'unknown'); ?></td></tr>
+                    <tr><td><strong>Server time</strong></td><td><?php echo esc_html(current_time('Y-m-d H:i:s')); ?></td></tr>
+                </tbody>
+            </table>
+            <p class="description"><?php esc_html_e('Screenshot this box before and after each update step when reporting update-checker issues — it shows exactly what WordPress has cached, rather than just what the screen displays.', 'admission-mgr'); ?></p>
+        </details>
+
         <form method="post" action="">
             <?php wp_nonce_field('inst_settings', 'inst_nonce'); ?>
 
@@ -1154,6 +1189,19 @@ function adm_mgr_settings_page() {
             color: #b32d2e;
             font-weight: 600;
             margin: 8px 0 0;
+        }
+        .adm-mgr-diagnostics {
+            background: #fff;
+            border: 1px solid #ccd0d4;
+            padding: 10px 15px;
+            margin: 0 0 25px;
+        }
+        .adm-mgr-diagnostics summary {
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .adm-mgr-diagnostics table td {
+            padding: 6px 10px;
         }
         .adm-mgr-header-preview {
             border: 1px dashed #ccc;

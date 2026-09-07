@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.5
+Stable tag: 1.1.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 
 == Changelog ==
 
+= 1.1.6 =
+* Diagnostics: the two previous attempts (v1.1.4, v1.1.5) at fixing the "update must be applied twice" issue haven't fully resolved it on at least one real site, and further code-only reasoning hasn't identified a definitive cause. Added a read-only "Update-checker diagnostics" panel to Admissions → Settings showing exactly what WordPress's update transient currently holds for this plugin (checked version, last-checked time, response/no_update status, our own release cache) — this is not a fix, it's instrumentation to pin down the real cause with direct evidence instead of guesswork.
+
 = 1.1.5 =
 * Fixed a duplicate "View details" link on the Plugins list page, introduced by v1.1.4: populating the update transient's "checked, up to date" data (needed for the previous fix) is also the signal WordPress uses to render its own native "View details" link, which was appearing alongside the one this plugin added manually. Removed the manual one; WordPress's native link already uses this plugin's real changelog data.
 * Strengthened the v1.1.4 fix for the update sometimes needing to be applied twice: after this plugin finishes updating, the update-check transient is now rebuilt immediately and synchronously in the same request, instead of waiting for the next admin page visit to trigger it.
@@ -120,6 +123,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.6 =
+Adds a diagnostics panel to help pin down the update-checker "twice" issue with direct evidence. Not a fix by itself. No database changes.
 
 = 1.1.5 =
 Fixes a duplicate "View details" link on the Plugins list (regression from v1.1.4) and further strengthens the fix for updates sometimes needing to be applied twice. No database changes.

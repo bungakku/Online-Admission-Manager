@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.6] - 2026-09-06
+
+### Added
+- Diagnostics only, not a fix: the v1.1.4/v1.1.5 attempts at resolving "update must be applied twice, once from the Dashboard's Updates page and again from the Plugins list" have not fully resolved it on at least one real production site, despite tracing through WordPress core's `wp_update_plugins()` throttling logic (which varies by triggering hook: 0s via `upgrader_process_complete`, 1 minute via `load-update-core.php`, 1 hour via `load-plugins.php`) and confirming the existing fix's reasoning holds up against that logic. Rather than ship a fourth unverified guess, added a read-only "Update-checker diagnostics" panel to Admissions → Settings, showing: the running `ADM_MGR_VERSION`, the update transient's `checked[]` version and `last_checked` time for this plugin, whether it's present in `response[]` (update available) or `no_update[]` (confirmed current), and our own GitHub-release cache state. No side effects — safe to view/screenshot repeatedly while reproducing the issue, to get direct evidence of exactly where the two admin screens diverge.
+
 ## [1.1.5] - 2026-09-05
 
 ### Fixed
