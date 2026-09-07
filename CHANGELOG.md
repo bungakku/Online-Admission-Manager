@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.7] - 2026-09-07
+
+### Fixed
+- Identified the actual cause of the "update shown as available on both the Dashboard and Plugins list, even immediately after updating" issue, using the v1.1.6 diagnostics panel and screenshots from a real affected site (`mylab.biswazit.in`): the site runs **LiteSpeed Cache**, which maintains its own object-cache layer underneath WordPress's standard `get_site_transient()`/`set_site_transient()`/`delete_site_transient()` functions. Calling those functions correctly updates WordPress's logical view of the transient, but LiteSpeed Cache doesn't automatically know to purge its own cache in response — it requires an explicit `do_action('litespeed_purge_all')` signal, which is LiteSpeed's documented integration point for exactly this kind of scenario (confirmed against community precedent using the same `upgrader_process_complete` hook this plugin already uses).
+- `adm_mgr_refresh_after_update()` now fires that purge when LiteSpeed Cache is detected active (`defined('LSCWP_V')` or `class_exists('\LiteSpeed\Purge')`), immediately after the existing WordPress-level transient rebuild from v1.1.4/v1.1.5. Verified in isolation: purge fires only when LiteSpeed is present and only for this plugin's own update, not for other plugins or when LiteSpeed isn't installed.
+
 ## [1.1.6] - 2026-09-06
 
 ### Added

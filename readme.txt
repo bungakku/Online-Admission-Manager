@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.6
+Stable tag: 1.1.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 
 == Changelog ==
 
+= 1.1.7 =
+* Found the actual cause of the persistent "update shown as available on both the Dashboard and Plugins list, even right after updating" issue: LiteSpeed Cache (confirmed present via screenshots from a real affected site) maintains its own object-cache layer underneath WordPress's normal transient functions, and doesn't purge it just because delete_site_transient()/set_site_transient() were called from PHP — it needs an explicit purge signal, which is a documented LiteSpeed integration point. The post-update refresh now fires that purge when LiteSpeed Cache is detected active, in addition to the WordPress-level transient rebuild already added in v1.1.4/v1.1.5.
+
 = 1.1.6 =
 * Diagnostics: the two previous attempts (v1.1.4, v1.1.5) at fixing the "update must be applied twice" issue haven't fully resolved it on at least one real site, and further code-only reasoning hasn't identified a definitive cause. Added a read-only "Update-checker diagnostics" panel to Admissions → Settings showing exactly what WordPress's update transient currently holds for this plugin (checked version, last-checked time, response/no_update status, our own release cache) — this is not a fix, it's instrumentation to pin down the real cause with direct evidence instead of guesswork.
 
@@ -123,6 +126,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.7 =
+Fixes the persistent "update shown as available even after updating" issue on sites running LiteSpeed Cache, which needed an explicit purge signal this plugin wasn't sending. No database changes.
 
 = 1.1.6 =
 Adds a diagnostics panel to help pin down the update-checker "twice" issue with direct evidence. Not a fix by itself. No database changes.

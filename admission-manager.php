@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.
- * Version:           1.1.6
+ * Version:           1.1.7
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.6');
+define('ADM_MGR_VERSION', '1.1.7');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -230,6 +230,14 @@ function adm_mgr_fix_github_zip_foldername($source, $remote_source, $upgrader, $
  * whichever admin screen happens to be visited next. wp_update_plugins()
  * is safe to call directly here — get_plugins()/plugin.php are already
  * loaded by this point in the upgrade process.
+ *
+ * Confirmed on a real site running LiteSpeed Cache that the above alone
+ * wasn't enough: LiteSpeed Cache maintains its own object-cache layer
+ * underneath WordPress's normal transient functions, and doesn't know to
+ * purge it just because delete_site_transient()/set_site_transient() were
+ * called — it needs an explicit purge signal. This is a documented
+ * interaction (LiteSpeed's own integration point for exactly this
+ * scenario), so also fire that purge if LiteSpeed Cache is active.
  */
 add_action('upgrader_process_complete', 'adm_mgr_refresh_after_update', 10, 2);
 function adm_mgr_refresh_after_update($upgrader, $hook_extra) {
@@ -255,6 +263,12 @@ function adm_mgr_refresh_after_update($upgrader, $hook_extra) {
 
     if (function_exists('wp_update_plugins')) {
         wp_update_plugins();
+    }
+
+    // LiteSpeed Cache: purge its cache layers so they can't serve a stale
+    // update-status snapshot from before this upgrade completed.
+    if (defined('LSCWP_V') || class_exists('\LiteSpeed\Purge')) {
+        do_action('litespeed_purge_all');
     }
 }
 
