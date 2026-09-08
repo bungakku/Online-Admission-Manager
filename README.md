@@ -2,7 +2,7 @@
 
 A WordPress plugin that adds a complete online admission/enquiry form to any page via a shortcode — built for schools, colleges, and coaching institutes.
 
-[![Release](https://img.shields.io/badge/release-v1.1.7-blue.svg)](https://github.com/bungakku/Online-Admission-Manager/releases)
+[![Release](https://img.shields.io/badge/release-v1.1.8-blue.svg)](https://github.com/bungakku/Online-Admission-Manager/releases)
 [![License: GPL v2+](https://img.shields.io/badge/license-GPLv2%2B-green.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 
 ## Features
@@ -66,6 +66,11 @@ php -l admission-manager.php
 - Uploaded files are validated by extension, size (≤300KB), and real MIME type via `wp_check_filetype_and_ext()`.
 - The upload directory blocks directory listing and execution of script-like file extensions; uploaded files themselves remain directly viewable, since the admin panel links to them directly.
 - Aadhar numbers are encrypted at rest and only ever decrypted on an explicit, logged admin action.
+- **Recommended for production sites with real Aadhar data:** define a dedicated encryption key in `wp-config.php`:
+  ```php
+  define('ADM_MGR_ENCRYPTION_KEY', 'a long, random, site-specific secret — generate one, never reuse it elsewhere');
+  ```
+  If this isn't defined, the plugin derives its encryption key from WordPress's own `AUTH_KEY`/`SECURE_AUTH_KEY` salts instead. That works, but those salts are meant to be rotated (e.g. after a suspected compromise) — and rotating them changes the derived key, making every Aadhar number encrypted before the rotation permanently undecryptable. A dedicated `ADM_MGR_ENCRYPTION_KEY` is never affected by WordPress's own salt rotation, since it's independent of it. The plugin also detects when the effective key has changed and shows an admin warning immediately, rather than only surfacing the problem later as a blank "Reveal" result — but prevention (a dedicated key) is better than detection.
 - A honeypot field and per-IP rate limit reduce automated/bot submissions.
 - Data is **not** deleted on plugin removal unless you explicitly opt in via Settings, to avoid accidental data loss.
 

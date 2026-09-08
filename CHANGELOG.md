@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.8] - 2026-09-08
+
+### Security
+- Addressed audit finding Immediate #3: the Aadhar encryption key was derived solely from `AUTH_KEY`/`SECURE_AUTH_KEY`, which WordPress's own hardening guidance recommends rotating (e.g. after a suspected compromise). Rotating them silently changes the derived key, and `adm_mgr_decrypt()` would fail to authenticate every previously-encrypted Aadhar number with no visible symptom — the "Reveal" action would return success with a blank value rather than an error.
+- `adm_mgr_get_encryption_key()` now checks for an optional `ADM_MGR_ENCRYPTION_KEY` constant in `wp-config.php` first — a dedicated, plugin-specific secret that's never affected by WordPress's own salt rotation. Documented in README.md as the recommended setup for any site with real Aadhar data. Falls back to the original `AUTH_KEY`/`SECURE_AUTH_KEY`-derived behavior for backward compatibility if not defined.
+- Added `adm_mgr_get_key_fingerprint()` (a one-way, non-reversible hash of the current key — reveals nothing about the key itself) plus `adm_mgr_check_key_rotation()`, hooked to `admin_init`, which compares the current fingerprint against a stored baseline on every admin page load and sets a pending-warning flag if they differ. `adm_mgr_key_rotation_notice()` then shows a persistent `admin_notices` warning explaining what happened, what to do (restore an old wp-config.php backup if available, to re-encrypt affected entries before finalizing the rotation), and a dismiss/acknowledge action (`adm_mgr_handle_ack_key_rotation()`) that accepts the new key as the baseline going forward.
+- `adm_mgr_decrypt()` now returns `false` specifically when decryption fails (wrong/rotated key) as opposed to `''` for a genuinely empty stored value — these were previously indistinguishable. `adm_mgr_ajax_reveal_aadhar()` checks for `false` and returns an explicit `wp_send_json_error()` (409) with a clear explanation, instead of `wp_send_json_success()` with a blank value. No JS changes needed — the existing Reveal button handler already displays `data.message` on any error response.
+- New options `adm_mgr_key_fingerprint` and `adm_mgr_key_rotation_pending` added to the uninstall cleanup list.
+- Verified all of the above with an isolated test harness across 12 scenarios: dedicated-key round-trip, fingerprint stability, first-run baseline (no false warning), same-key no-warning, actual rotation correctly detected (using two separate PHP processes to simulate before/after key material, since constants can't be redefined mid-process), decrypt-with-wrong-key returns `false`, genuinely-empty-value still returns `''`, the AJAX handler's error/success/empty paths, the acknowledge handler correctly clearing state, and the pre-existing `AUTH_KEY`/`SECURE_AUTH_KEY` fallback path remaining unchanged for backward compatibility.
+
 ## [1.1.7] - 2026-09-07
 
 ### Fixed

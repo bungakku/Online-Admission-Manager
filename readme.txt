@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.7
+Stable tag: 1.1.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 
 == Changelog ==
 
+= 1.1.8 =
+* Security (audit Immediate #3): the Aadhar encryption key was derived solely from WordPress's AUTH_KEY/SECURE_AUTH_KEY salts, which are meant to be rotated (e.g. after a suspected compromise) — rotating them silently changed the derived key, permanently breaking decryption of every previously-encrypted Aadhar number with no visible symptom. Added support for a dedicated `ADM_MGR_ENCRYPTION_KEY` constant in wp-config.php (recommended for production — see README), which is immune to WordPress's own salt rotation. For sites not using it, the plugin now detects when the effective key has changed and shows an immediate admin warning instead of failing silently later. The "Reveal" action also now returns an explicit error when decryption genuinely fails, instead of silently showing a blank value.
+
 = 1.1.7 =
 * Found the actual cause of the persistent "update shown as available on both the Dashboard and Plugins list, even right after updating" issue: LiteSpeed Cache (confirmed present via screenshots from a real affected site) maintains its own object-cache layer underneath WordPress's normal transient functions, and doesn't purge it just because delete_site_transient()/set_site_transient() were called from PHP — it needs an explicit purge signal, which is a documented LiteSpeed integration point. The post-update refresh now fires that purge when LiteSpeed Cache is detected active, in addition to the WordPress-level transient rebuild already added in v1.1.4/v1.1.5.
 
@@ -126,6 +129,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.8 =
+Security: adds protection against WordPress security-key rotation silently breaking Aadhar decryption, plus an immediate warning if it's already happened. Consider adding ADM_MGR_ENCRYPTION_KEY to wp-config.php (see README). No database schema changes.
 
 = 1.1.7 =
 Fixes the persistent "update shown as available even after updating" issue on sites running LiteSpeed Cache, which needed an explicit purge signal this plugin wasn't sending. No database changes.

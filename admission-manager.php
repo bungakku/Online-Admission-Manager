@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.
- * Version:           1.1.7
+ * Version:           1.1.8
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.7');
+define('ADM_MGR_VERSION', '1.1.8');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -484,6 +484,7 @@ function adm_mgr_uninstall() {
         'adm_mgr_encryption_secret', 'adm_mgr_aadhar_access_log',
         'adm_mgr_activated_version', 'adm_mgr_github_token',
         'adm_mgr_aadhar_migration_done', 'adm_mgr_aadhar_migrated_count',
+        'adm_mgr_key_fingerprint', 'adm_mgr_key_rotation_pending',
     );
     foreach ($options as $option) {
         delete_option($option);
@@ -509,13 +510,25 @@ function adm_mgr_maybe_migrate() {
  * Encryption helpers for sensitive PII (currently: Aadhar number).
  *
  * Uses libsodium (sodium_crypto_secretbox) when available — bundled with
- * PHP 7.2+ — falling back to OpenSSL AES-256-GCM. The encryption key is
- * derived once from WordPress's own AUTH_KEY/SECURE_AUTH_KEY salts (defined
- * in wp-config.php) combined with a per-site option, so the ciphertext is
- * not portable to a different WordPress install by design.
+ * PHP 7.2+ — falling back to OpenSSL AES-256-GCM.
+ *
+ * Key material: if a site defines ADM_MGR_ENCRYPTION_KEY in wp-config.php,
+ * that's used exclusively — a dedicated, plugin-specific secret that is
+ * NEVER affected by WordPress's own salt rotation, since it's independent
+ * of AUTH_KEY/SECURE_AUTH_KEY. This is the recommended setup for any site
+ * with real Aadhar data already collected. If not defined, the key falls
+ * back to the original behavior (derived from AUTH_KEY/SECURE_AUTH_KEY, or
+ * a stored per-site secret if those are missing/short) for backward
+ * compatibility with existing installs — but see adm_mgr_check_key_rotation()
+ * below, which detects and warns if that fallback key ever changes, rather
+ * than letting decryption fail silently.
  * ---------------------------------------------------------------------------
  */
 function adm_mgr_get_encryption_key() {
+    if (defined('ADM_MGR_ENCRYPTION_KEY') && ADM_MGR_ENCRYPTION_KEY) {
+        return hash('sha256', ADM_MGR_ENCRYPTION_KEY, true);
+    }
+
     $key_material = '';
     if (defined('AUTH_KEY') && AUTH_KEY) {
         $key_material .= AUTH_KEY;
@@ -537,6 +550,79 @@ function adm_mgr_get_encryption_key() {
     }
 
     return hash('sha256', $key_material, true); // 32 raw bytes.
+}
+
+/**
+ * A short, one-way fingerprint of the current encryption key. Reveals
+ * nothing about the key itself (can't be reversed to recover it), but lets
+ * us detect when the underlying key material has changed — e.g. AUTH_KEY/
+ * SECURE_AUTH_KEY were rotated — which would otherwise break decryption of
+ * every existing record with no visible symptom until someone happens to
+ * click "Reveal".
+ */
+function adm_mgr_get_key_fingerprint() {
+    return substr(hash('sha256', adm_mgr_get_encryption_key()), 0, 16);
+}
+
+/**
+ * Detect key rotation as early as possible rather than leaving admins to
+ * discover it much later via a silently-blank "Reveal" result. This can't
+ * recover a key that's already gone — that's not mathematically possible
+ * once wp-config.php has been overwritten — but an immediate warning gives
+ * the admin the best chance to notice while they might still have a backup
+ * of the previous wp-config.php to work from.
+ */
+add_action('admin_init', 'adm_mgr_check_key_rotation');
+function adm_mgr_check_key_rotation() {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    $current_fingerprint = adm_mgr_get_key_fingerprint();
+    $stored_fingerprint = get_option('adm_mgr_key_fingerprint');
+
+    if (false === $stored_fingerprint) {
+        // First run (e.g. right after upgrading to this version) — record
+        // the baseline without warning, since there's nothing to compare yet.
+        update_option('adm_mgr_key_fingerprint', $current_fingerprint, false);
+        return;
+    }
+
+    if ($current_fingerprint !== $stored_fingerprint) {
+        update_option('adm_mgr_key_rotation_pending', '1', false);
+    }
+}
+
+add_action('admin_notices', 'adm_mgr_key_rotation_notice');
+function adm_mgr_key_rotation_notice() {
+    if (!current_user_can('manage_options') || !get_option('adm_mgr_key_rotation_pending')) {
+        return;
+    }
+
+    $ack_url = wp_nonce_url(admin_url('admin-post.php?action=adm_mgr_ack_key_rotation'), 'adm_mgr_ack_key_rotation');
+    echo '<div class="notice notice-warning"><p><strong>' .
+        esc_html__('Online Admission Manager: encryption key changed.', 'admission-mgr') .
+        '</strong><br>' .
+        esc_html__('Your WordPress security keys (AUTH_KEY/SECURE_AUTH_KEY in wp-config.php) appear to have changed since this plugin last checked. Aadhar numbers encrypted before this change can no longer be decrypted via "Reveal" — clicking it will now show a clear error instead of a blank value.', 'admission-mgr') .
+        ' ' .
+        esc_html__('If you still have a backup of the previous wp-config.php, you could temporarily restore it, re-save the affected entries to re-encrypt them under the new key, then switch back. If this change was intentional and you accept the impact on existing records, you can dismiss this notice.', 'admission-mgr') .
+        ' ' .
+        esc_html__('To prevent this happening again, consider defining a dedicated ADM_MGR_ENCRYPTION_KEY constant in wp-config.php (see README) — unlike AUTH_KEY/SECURE_AUTH_KEY, it will never change due to unrelated WordPress maintenance.', 'admission-mgr') .
+        '</p><p><a href="' . esc_url($ack_url) . '" class="button button-secondary">' . esc_html__('I understand, dismiss this', 'admission-mgr') . '</a></p></div>';
+}
+
+add_action('admin_post_adm_mgr_ack_key_rotation', 'adm_mgr_handle_ack_key_rotation');
+function adm_mgr_handle_ack_key_rotation() {
+    if (!current_user_can('manage_options') || !check_admin_referer('adm_mgr_ack_key_rotation')) {
+        wp_die(esc_html__('You do not have permission to do this.', 'admission-mgr'));
+    }
+
+    // Accept the current key as the new baseline and clear the warning.
+    update_option('adm_mgr_key_fingerprint', adm_mgr_get_key_fingerprint(), false);
+    delete_option('adm_mgr_key_rotation_pending');
+
+    wp_safe_redirect(wp_get_referer() ?: admin_url('admin.php?page=admission-settings'));
+    exit;
 }
 
 function adm_mgr_encrypt($plaintext) {
@@ -567,7 +653,7 @@ function adm_mgr_encrypt($plaintext) {
 
 function adm_mgr_decrypt($stored) {
     if ('' === (string) $stored) {
-        return '';
+        return ''; // Genuinely empty — not an error.
     }
     $key = adm_mgr_get_encryption_key();
 
@@ -576,7 +662,7 @@ function adm_mgr_decrypt($stored) {
         $nonce = substr($raw, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
         $cipher = substr($raw, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
         $plain = sodium_crypto_secretbox_open($cipher, $nonce, $key);
-        return false === $plain ? '' : $plain;
+        return false === $plain ? false : $plain; // false = decryption failed (wrong/rotated key).
     }
 
     if (0 === strpos($stored, 'gcm1:') && function_exists('openssl_decrypt')) {
@@ -585,7 +671,7 @@ function adm_mgr_decrypt($stored) {
         $tag = substr($raw, 12, 16);
         $cipher = substr($raw, 28);
         $plain = openssl_decrypt($cipher, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
-        return false === $plain ? '' : $plain;
+        return false === $plain ? false : $plain; // false = decryption failed (wrong/rotated key).
     }
 
     // Legacy/unrecognized format (e.g. data saved before encryption was
@@ -637,6 +723,12 @@ function adm_mgr_ajax_reveal_aadhar() {
     }
 
     $plain = adm_mgr_decrypt($encrypted);
+
+    if (false === $plain) {
+        wp_send_json_error(array(
+            'message' => __('Could not decrypt this Aadhar number. The encryption key may have changed (e.g. WordPress security salts were rotated) since this record was saved — see the warning notice on this page if one is showing. This value cannot be recovered without the original key.', 'admission-mgr'),
+        ), 409);
+    }
 
     // Lightweight audit trail: who revealed which record's Aadhar, and when.
     $log = get_option('adm_mgr_aadhar_access_log', array());
