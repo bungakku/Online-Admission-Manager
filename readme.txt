@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.8
+Stable tag: 1.1.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 
 == Changelog ==
 
+= 1.1.9 =
+* Fixed orphaned uploaded files: if a submission uploaded a passport photo successfully but then failed later in the same request (an invalid payment proof or scanned document, an encryption error, or a database error), the earlier file(s) stayed on disk forever with no submission record ever pointing to them. Uploaded files are now tracked within the request and automatically deleted if any later step fails.
+
 = 1.1.8 =
 * Security (audit Immediate #3): the Aadhar encryption key was derived solely from WordPress's AUTH_KEY/SECURE_AUTH_KEY salts, which are meant to be rotated (e.g. after a suspected compromise) — rotating them silently changed the derived key, permanently breaking decryption of every previously-encrypted Aadhar number with no visible symptom. Added support for a dedicated `ADM_MGR_ENCRYPTION_KEY` constant in wp-config.php (recommended for production — see README), which is immune to WordPress's own salt rotation. For sites not using it, the plugin now detects when the effective key has changed and shows an immediate admin warning instead of failing silently later. The "Reveal" action also now returns an explicit error when decryption genuinely fails, instead of silently showing a blank value.
 
@@ -129,6 +132,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.9 =
+Fixes orphaned uploaded files accumulating on disk when a submission fails partway through (after a photo/document was already uploaded). No database changes.
 
 = 1.1.8 =
 Security: adds protection against WordPress security-key rotation silently breaking Aadhar decryption, plus an immediate warning if it's already happened. Consider adding ADM_MGR_ENCRYPTION_KEY to wp-config.php (see README). No database schema changes.

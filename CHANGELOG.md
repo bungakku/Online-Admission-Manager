@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.9] - 2026-09-09
+
+### Fixed
+- Orphaned uploaded files in `adm_mgr_handle_submission()`: the passport photo (and payment proof, if provided) were written to disk before later steps ran, but if any later step failed — an invalid scanned document, `adm_mgr_encrypt()` failing, or the `$wpdb->insert()` call failing — the function returned early without deleting the files already written, leaking them on disk indefinitely with no submission row ever referencing them.
+- Added `adm_mgr_delete_uploaded_files()`, a shared helper (also used to refactor the existing per-submission `adm_mgr_delete_files()`, which now calls it, removing duplicated URL-to-path conversion logic). The submission handler now accumulates every successfully-uploaded path into `$uploaded_paths` and calls this helper before all four possible early returns that can occur after at least one file has been uploaded: payment-proof validation failure, scanned-document validation failure, Aadhar encryption failure, and DB insert failure.
+- Verified with an isolated test harness using real files on a temp filesystem (not just mocks): confirmed the helper deletes exactly the requested files and leaves others untouched, handles empty/null entries gracefully, and confirmed the refactored `adm_mgr_delete_files()` still correctly removes all files for the admin "delete entry" action. Also confirmed by inspection that `adm_mgr_upload_file()` never writes a file to disk before returning `false` — so the only orphan risk was ever previously-successful uploads within the same request, which this closes.
+
 ## [1.1.8] - 2026-09-08
 
 ### Security

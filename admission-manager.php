@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.
- * Version:           1.1.8
+ * Version:           1.1.9
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.8');
+define('ADM_MGR_VERSION', '1.1.9');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -1656,35 +1656,35 @@ function adm_mgr_export_csv() {
 }
 
 /**
- * Remove uploaded files associated with a submission row.
+ * Delete a flat list of uploaded file URLs from disk. Shared by the admin
+ * "delete entry" action and the submission handler's own rollback when a
+ * later step in the same request fails after some files were already
+ * uploaded.
  */
-function adm_mgr_delete_files($submission) {
+function adm_mgr_delete_uploaded_files($file_urls) {
     $upload_dir = wp_upload_dir();
     $base_dir   = $upload_dir['basedir'];
     $base_url   = $upload_dir['baseurl'];
 
-    $files = array($submission->passport_photo, $submission->payment_proof);
-    foreach ($files as $file) {
-        if (!$file) {
+    foreach ($file_urls as $file_url) {
+        $file_url = trim((string) $file_url);
+        if ('' === $file_url) {
             continue;
         }
-        $path = str_replace($base_url, $base_dir, $file);
+        $path = str_replace($base_url, $base_dir, $file_url);
         if (file_exists($path)) {
             @unlink($path);
         }
     }
+}
 
-    $docs = explode(',', (string) $submission->scanned_documents);
-    foreach ($docs as $doc) {
-        $doc = trim($doc);
-        if (!$doc) {
-            continue;
-        }
-        $path = str_replace($base_url, $base_dir, $doc);
-        if (file_exists($path)) {
-            @unlink($path);
-        }
-    }
+/**
+ * Remove uploaded files associated with a submission row.
+ */
+function adm_mgr_delete_files($submission) {
+    $paths = array($submission->passport_photo, $submission->payment_proof);
+    $paths = array_merge($paths, explode(',', (string) $submission->scanned_documents));
+    adm_mgr_delete_uploaded_files($paths);
 }
 
 /**
@@ -2011,13 +2011,20 @@ function adm_mgr_handle_submission() {
     if (!$photo_path) {
         return;
     }
+    // Track every file successfully written to disk in this request, so we
+    // can clean them up if a later step (another file, encryption, or the
+    // DB insert) fails — otherwise they'd be silently orphaned on disk with
+    // no submission row ever referencing them.
+    $uploaded_paths = array($photo_path);
 
     $payment_path = null;
     if (isset($_FILES['payment_proof']) && UPLOAD_ERR_OK === $_FILES['payment_proof']['error']) {
         $payment_path = adm_mgr_upload_file($_FILES['payment_proof'], $plugin_upload_dir, $plugin_upload_url, $allowed_ext, $allowed_mimes, $max_size);
         if (false === $payment_path) {
+            adm_mgr_delete_uploaded_files($uploaded_paths);
             return;
         }
+        $uploaded_paths[] = $payment_path;
     }
 
     $scanned_paths = array();
@@ -2034,7 +2041,9 @@ function adm_mgr_handle_submission() {
                 $path = adm_mgr_upload_file($file_arr, $plugin_upload_dir, $plugin_upload_url, $allowed_ext, $allowed_mimes, $max_size);
                 if ($path) {
                     $scanned_paths[] = $path;
+                    $uploaded_paths[] = $path;
                 } else {
+                    adm_mgr_delete_uploaded_files($uploaded_paths);
                     return;
                 }
             }
@@ -2047,6 +2056,7 @@ function adm_mgr_handle_submission() {
     $aadhar_plain = sanitize_text_field(wp_unslash($_POST['aadhar_number']));
     $aadhar_encrypted = adm_mgr_encrypt($aadhar_plain);
     if (false === $aadhar_encrypted) {
+        adm_mgr_delete_uploaded_files($uploaded_paths);
         adm_mgr_output_message(__('A security component required to protect your data is unavailable on this server. Please contact the site administrator.', 'admission-mgr'), 'error');
         return;
     }
@@ -2083,6 +2093,7 @@ function adm_mgr_handle_submission() {
 
     $inserted = $wpdb->insert($table_main, $data);
     if (false === $inserted) {
+        adm_mgr_delete_uploaded_files($uploaded_paths);
         adm_mgr_output_message(__('Something went wrong while saving your application. Please try again.', 'admission-mgr'), 'error');
         return;
     }
