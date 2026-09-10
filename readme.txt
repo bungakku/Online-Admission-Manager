@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.9
+Stable tag: 1.1.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,10 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 
 == Changelog ==
 
+= 1.1.10 =
+* Added a "Remove" button next to each file upload field (passport photo, scanned documents, payment proof), since browsers offer no built-in way to clear a selected file once chosen.
+* Fixed name and permanent address fields: they were visually styled as uppercase while typing, but the actual value saved, displayed in the admin panel, exported to CSV, and emailed was still whatever case the applicant typed. The real value now matches what's shown.
+
 = 1.1.9 =
 * Fixed orphaned uploaded files: if a submission uploaded a passport photo successfully but then failed later in the same request (an invalid payment proof or scanned document, an encryption error, or a database error), the earlier file(s) stayed on disk forever with no submission record ever pointing to them. Uploaded files are now tracked within the request and automatically deleted if any later step fails.
 
@@ -132,6 +136,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.10 =
+Adds Remove buttons for file uploads and fixes name/address fields not actually being saved in uppercase despite looking that way while typing. No database changes.
 
 = 1.1.9 =
 Fixes orphaned uploaded files accumulating on disk when a submission fails partway through (after a photo/document was already uploaded). No database changes.

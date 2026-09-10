@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.
- * Version:           1.1.9
+ * Version:           1.1.10
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.9');
+define('ADM_MGR_VERSION', '1.1.10');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -1836,13 +1836,19 @@ function adm_mgr_render_form() {
 
             <fieldset>
                 <legend><?php esc_html_e('Document Uploads (Max 300KB each)', 'admission-mgr'); ?></legend>
-                <p><label><?php esc_html_e('Passport Size Photo:', 'admission-mgr'); ?> <input type="file" name="passport_photo" id="admPassportPhotoInput" accept="image/jpeg,image/png" required <?php disabled(!$is_open); ?>></label></p>
-                <p><label><?php esc_html_e('Scanned Documents (multiple):', 'admission-mgr'); ?> <input type="file" name="scanned_docs[]" multiple accept="image/jpeg,image/png,application/pdf" <?php disabled(!$is_open); ?>></label>
+                <p>
+                    <label><?php esc_html_e('Passport Size Photo:', 'admission-mgr'); ?> <input type="file" name="passport_photo" id="admPassportPhotoInput" accept="image/jpeg,image/png" required <?php disabled(!$is_open); ?>></label>
+                    <button type="button" class="adm-mgr-remove-file" data-target="admPassportPhotoInput" aria-label="<?php esc_attr_e('Remove selected photo', 'admission-mgr'); ?>" <?php disabled(!$is_open); ?>>&times; <?php esc_html_e('Remove', 'admission-mgr'); ?></button>
+                </p>
+                <p>
+                    <label><?php esc_html_e('Scanned Documents (multiple):', 'admission-mgr'); ?> <input type="file" name="scanned_docs[]" id="admScannedDocsInput" multiple accept="image/jpeg,image/png,application/pdf" <?php disabled(!$is_open); ?>></label>
+                    <button type="button" class="adm-mgr-remove-file" data-target="admScannedDocsInput" aria-label="<?php esc_attr_e('Remove selected documents', 'admission-mgr'); ?>" <?php disabled(!$is_open); ?>>&times; <?php esc_html_e('Remove', 'admission-mgr'); ?></button>
                 <small><?php esc_html_e('Upload mark sheets, certificates etc.', 'admission-mgr'); ?></small></p>
 
                 <div class="adm-mgr-payment-row">
                     <div class="adm-mgr-payment-upload">
-                        <label><?php esc_html_e('Proof of Payment:', 'admission-mgr'); ?> <input type="file" name="payment_proof" accept="image/jpeg,image/png,application/pdf" <?php disabled(!$is_open); ?>></label>
+                        <label><?php esc_html_e('Proof of Payment:', 'admission-mgr'); ?> <input type="file" name="payment_proof" id="admPaymentProofInput" accept="image/jpeg,image/png,application/pdf" <?php disabled(!$is_open); ?>></label>
+                        <button type="button" class="adm-mgr-remove-file" data-target="admPaymentProofInput" aria-label="<?php esc_attr_e('Remove selected payment proof', 'admission-mgr'); ?>" <?php disabled(!$is_open); ?>>&times; <?php esc_html_e('Remove', 'admission-mgr'); ?></button>
                     </div>
                     <?php if ($payment_qr) : ?>
                     <div class="adm-mgr-payment-qr">
@@ -2062,7 +2068,7 @@ function adm_mgr_handle_submission() {
     }
 
     $data = array(
-        'name'               => sanitize_text_field(wp_unslash($_POST['name'])),
+        'name'               => adm_mgr_to_uppercase(sanitize_text_field(wp_unslash($_POST['name']))),
         'email'              => sanitize_email(wp_unslash($_POST['email'] ?? '')),
         'contact1'           => sanitize_text_field(wp_unslash($_POST['contact1'])),
         'contact2'           => sanitize_text_field(wp_unslash($_POST['contact2'] ?? '')),
@@ -2072,7 +2078,7 @@ function adm_mgr_handle_submission() {
         'mother_name'        => sanitize_text_field(wp_unslash($_POST['mother_name'])),
         'mother_contact1'    => sanitize_text_field(wp_unslash($_POST['mother_contact1'] ?? '')),
         'mother_contact2'    => sanitize_text_field(wp_unslash($_POST['mother_contact2'] ?? '')),
-        'permanent_address'  => sanitize_textarea_field(wp_unslash($_POST['permanent_address'])),
+        'permanent_address'  => adm_mgr_to_uppercase(sanitize_textarea_field(wp_unslash($_POST['permanent_address']))),
         'present_address'    => sanitize_textarea_field(wp_unslash($_POST['present_address'])),
         'present_pin_code'   => sanitize_text_field(wp_unslash($_POST['present_pin_code'] ?? '')),
         'dob'                => sanitize_text_field(wp_unslash($_POST['dob'])),
@@ -2175,6 +2181,20 @@ function adm_mgr_send_confirmation_email($submission_id, $applicant_email, $appl
     $headers = array('Content-Type: text/html; charset=UTF-8');
 
     wp_mail($applicant_email, $subject, $message, $headers);
+}
+
+/**
+ * Uppercase a string, correctly handling accented/non-ASCII characters via
+ * mb_strtoupper() when available, falling back to strtoupper() otherwise.
+ *
+ * Used for fields marked "IN BLOCK LETTERS" on the form (name, permanent
+ * address). The .adm-uppercase CSS class those fields use only changes how
+ * the field looks while typing — it has no effect on the actual value
+ * submitted — so this is the server-side source of truth, backing up the
+ * JS live-transform in script.js for applicants with JavaScript disabled.
+ */
+function adm_mgr_to_uppercase($string) {
+    return function_exists('mb_strtoupper') ? mb_strtoupper($string, 'UTF-8') : strtoupper($string);
 }
 
 /**

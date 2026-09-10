@@ -115,6 +115,26 @@
     max-width: 100%;
 }
 
+.adm-mgr-remove-file {
+    background: #f8f9fa;
+    color: #c0392b;
+    border: 1px solid #e0b4b4;
+    border-radius: 4px;
+    padding: 3px 10px;
+    margin-left: 8px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.adm-mgr-remove-file:hover {
+    background: #fbeaea;
+}
+
+.adm-mgr-remove-file:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .adm-uppercase {
     text-transform: uppercase;
 }
@@ -427,6 +447,11 @@
         display: block;
         margin-top: 5px;
         width: 100%;
+    }
+
+    .adm-mgr-remove-file {
+        margin-left: 0;
+        margin-top: 8px;
     }
 
     .adm-mgr-payment-row {

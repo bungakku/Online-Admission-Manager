@@ -8,6 +8,24 @@ jQuery(document).ready(function ($) {
     var MAX_FILE_SIZE = 300 * 1024; // 300KB, must match the server-side limit.
 
     // -------------------------------------------------------------------
+    // Force real uppercase on fields marked "IN BLOCK LETTERS" (name,
+    // permanent address). The .adm-uppercase CSS class only changes how
+    // the field LOOKS while typing — it doesn't touch the actual value,
+    // so what gets submitted, saved, and shown elsewhere (admin panel,
+    // CSV, email) previously stayed in whatever case the applicant typed.
+    // This makes the real value match what's displayed. Cursor position
+    // is preserved so typing mid-word doesn't jump to the end.
+    // -------------------------------------------------------------------
+    $(document).on('input', '.adm-uppercase', function () {
+        var start = this.selectionStart;
+        var end = this.selectionEnd;
+        this.value = this.value.toUpperCase();
+        if (start !== null && end !== null) {
+            this.setSelectionRange(start, end);
+        }
+    });
+
+    // -------------------------------------------------------------------
     // Academic record rows
     // -------------------------------------------------------------------
     $('#add-academic-row').on('click', function () {
@@ -54,6 +72,28 @@ jQuery(document).ready(function ($) {
             box.html('<img src="' + lastPhotoDataUrl + '" alt="Passport photo preview">');
         };
         reader.readAsDataURL(file);
+    });
+
+    // -------------------------------------------------------------------
+    // "Remove" buttons next to each file input. Browsers give no built-in
+    // way to clear a chosen file (or files) once selected other than
+    // picking a different one, which isn't obvious to every applicant.
+    // -------------------------------------------------------------------
+    $(document).on('click', '.adm-mgr-remove-file', function () {
+        var targetId = $(this).data('target');
+        var input = document.getElementById(targetId);
+        if (!input) {
+            return;
+        }
+        input.value = '';
+
+        // The passport photo has its own live preview. Programmatically
+        // clearing a file input's value does not fire a native "change"
+        // event in any current browser, so reset the preview manually.
+        if (targetId === 'admPassportPhotoInput') {
+            lastPhotoDataUrl = null;
+            $('#admPhotoPreviewBox').html('<span class="adm-photo-preview-placeholder">No photo yet</span>');
+        }
     });
 
     // -------------------------------------------------------------------

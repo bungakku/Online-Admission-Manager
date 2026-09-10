@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.10] - 2026-09-10
+
+### Added
+- "Remove" button next to each of the three file upload fields (passport photo, scanned documents, payment proof). Browsers provide no built-in way to clear a selected file/files once chosen other than picking a different one, which real-world testing showed wasn't obvious to applicants. Clicking it clears the corresponding `<input type="file">` and, for the passport photo, resets its live preview back to the placeholder state (clearing a file input's value programmatically doesn't fire a native `change` event in any current browser, so this is handled explicitly).
+
+### Fixed
+- Name and permanent address fields were styled with `text-transform: uppercase` (`.adm-uppercase` class) so they visually appeared as block letters while typing, but this is a CSS-only effect — the actual submitted value stayed in whatever case the applicant typed, meaning the saved record, admin panel view, CSV export, and confirmation email all showed mixed/lowercase text despite the form visually showing uppercase. Added a live JS transform (preserving cursor position while typing) so the actual input value matches what's displayed, plus a server-side `adm_mgr_to_uppercase()` backstop (using `mb_strtoupper()` when available for correct handling of accented characters, falling back to `strtoupper()`) applied when the submission is saved, covering applicants with JavaScript disabled.
+- Verified `adm_mgr_to_uppercase()` in isolation: basic ASCII, mixed-case, and multi-line address input all uppercase correctly; confirmed graceful fallback behavior when `mbstring` isn't available.
+
 ## [1.1.9] - 2026-09-09
 
 ### Fixed
