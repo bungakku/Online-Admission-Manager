@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.11] - 2026-09-11
+
+### Fixed
+- **Critical**: form submissions failed with a WordPress-rendered 404 ("Page not found") and no record was ever saved, on every environment tested (live Hostinger hosting with security disabled, a fresh local Laragon install with zero security software, and a from-scratch AlmaLinux + Virtualmin LEMP VM) — proving this was a genuine code bug, not an environment, hosting, caching, WAF, or permalink issue (all of which were investigated and ruled out first).
+  - Root cause: the Full Name field's `name` attribute was `name="name"`, colliding with WordPress core's own reserved `name` public query variable (`WP::$public_query_vars`), which WordPress uses to look up a page/post by its slug. WordPress's request router (`WP::parse_request()`) falls back to `$_POST` for any recognized query variable not otherwise set — so on submission, `$_POST['name']` (whatever the applicant typed) was picked up as an override, WordPress tried to find a page whose slug matched that typed name, found none, and correctly rendered its own 404 per its own routing logic. GET requests were never affected since `$_POST` is empty for them — exactly matching every symptom observed (page loads fine, only submission fails; 100% reproducible; no PHP error logged, since nothing crashed — WordPress was correctly following its own rules given input it was never designed to receive this way).
+  - Renamed the field's `name`/`data-field` attributes to `applicant_name` throughout the form, the required-fields check, the `$_POST` read in the submission handler, and the print-preview JS. The internal PHP array key and `wp_admission_submissions.name` database column are unchanged — no schema change, no effect on existing data.
+  - Cross-checked every other form field name against WordPress core's authoritative `public_query_vars` list (`m, p, posts, w, cat, ..., name, category_name, tag, ..., page_id, ...`) — confirmed no other field in this form collides.
+- Also hardened against a second, separate issue found via the same debug-log investigation: a real-world test install had a stored DB-version option indicating the schema was current, while the actual `wp_admission_submissions` table did not exist (most likely from copying plugin files into `wp-content/plugins/` without WordPress ever running the actual activation hook). The submission handler now checks for the table's existence immediately before inserting and calls `adm_mgr_activate()` to recreate it if missing, rather than failing with a raw database error and no submitted-data record.
+- Verified the required-fields validation logic directly: confirmed a submission using the renamed field passes as expected, and confirmed the old field name alone is correctly treated as a missing required field (not a silent bypass). Verified the table self-heal check via an isolated mock: does nothing when the table exists, calls `adm_mgr_activate()` exactly once when it doesn't.
+
 ## [1.1.10] - 2026-09-10
 
 ### Added

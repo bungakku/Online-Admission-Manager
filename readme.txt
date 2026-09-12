@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.10
+Stable tag: 1.1.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,10 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 
 == Changelog ==
 
+= 1.1.11 =
+* Critical fix: form submissions were failing with a "Page not found" error and no record ever being saved. Root cause: the Full Name field was named "name", which collides with WordPress's own reserved `name` query variable (used internally to look up a page by its slug). On submission, WordPress's router picked up the typed name as an override and tried to find a page with that name as its slug, found none, and rendered its own 404 — instead of processing the form. Renamed the field internally; nothing changes for applicants filling out the form.
+* Hardened submission handling: if the database table is ever missing (confirmed possible in real-world testing), it's now automatically recreated before saving, instead of the submission failing with a database error.
+
 = 1.1.10 =
 * Added a "Remove" button next to each file upload field (passport photo, scanned documents, payment proof), since browsers offer no built-in way to clear a selected file once chosen.
 * Fixed name and permanent address fields: they were visually styled as uppercase while typing, but the actual value saved, displayed in the admin panel, exported to CSV, and emailed was still whatever case the applicant typed. The real value now matches what's shown.
@@ -136,6 +140,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.11 =
+Critical: fixes form submissions failing with "Page not found" and never being saved (a field name collided with a reserved WordPress variable). Update immediately if applicants have been unable to submit. Clear any page cache after updating. No database schema changes.
 
 = 1.1.10 =
 Adds Remove buttons for file uploads and fixes name/address fields not actually being saved in uppercase despite looking that way while typing. No database changes.

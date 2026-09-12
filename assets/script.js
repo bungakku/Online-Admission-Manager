@@ -248,7 +248,7 @@ jQuery(document).ready(function ($) {
         // Name
         var nameEl = doc.querySelector('[data-print="name"]');
         if (nameEl) {
-            nameEl.textContent = values.name || '';
+            nameEl.textContent = values.applicant_name || '';
         }
 
         // Passport photo

@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.
- * Version:           1.1.10
+ * Version:           1.1.11
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.10');
+define('ADM_MGR_VERSION', '1.1.11');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -1751,7 +1751,7 @@ function adm_mgr_render_form() {
                 <legend><?php esc_html_e('Personal Information (IN BLOCK LETTERS)', 'admission-mgr'); ?></legend>
 
                 <div class="adm-row adm-row-name-photo">
-                    <label class="adm-field-grow"><?php esc_html_e('Full Name:', 'admission-mgr'); ?> <input type="text" name="name" data-field="name" required class="adm-uppercase" <?php disabled(!$is_open); ?>></label>
+                    <label class="adm-field-grow"><?php esc_html_e('Full Name:', 'admission-mgr'); ?> <input type="text" name="applicant_name" data-field="applicant_name" required class="adm-uppercase" <?php disabled(!$is_open); ?>></label>
                     <div class="adm-photo-preview-slot">
                         <span class="adm-photo-preview-label"><?php esc_html_e('Photo Preview', 'admission-mgr'); ?></span>
                         <div class="adm-photo-preview-box" id="admPhotoPreviewBox">
@@ -1976,7 +1976,7 @@ function adm_mgr_handle_submission() {
     }
 
     $required = array(
-        'name', 'contact1', 'father_name', 'mother_name', 'permanent_address',
+        'applicant_name', 'contact1', 'father_name', 'mother_name', 'permanent_address',
         'present_address', 'dob', 'sex', 'nationality', 'aadhar_number',
         'state_domicile', 'category', 'last_school', 'course_seeking',
     );
@@ -2059,6 +2059,16 @@ function adm_mgr_handle_submission() {
     global $wpdb;
     $table_main = $wpdb->prefix . 'admission_submissions';
 
+    // Defensive self-heal: if this table is ever missing — confirmed to
+    // happen in real-world testing, e.g. when a site's stored DB version
+    // option says "up to date" without the table actually existing —
+    // recreate it before attempting the insert, rather than failing the
+    // whole submission with a confusing database error and no record of
+    // what the applicant tried to submit.
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_main)) !== $table_main) {
+        adm_mgr_activate();
+    }
+
     $aadhar_plain = sanitize_text_field(wp_unslash($_POST['aadhar_number']));
     $aadhar_encrypted = adm_mgr_encrypt($aadhar_plain);
     if (false === $aadhar_encrypted) {
@@ -2068,7 +2078,7 @@ function adm_mgr_handle_submission() {
     }
 
     $data = array(
-        'name'               => adm_mgr_to_uppercase(sanitize_text_field(wp_unslash($_POST['name']))),
+        'name'               => adm_mgr_to_uppercase(sanitize_text_field(wp_unslash($_POST['applicant_name']))),
         'email'              => sanitize_email(wp_unslash($_POST['email'] ?? '')),
         'contact1'           => sanitize_text_field(wp_unslash($_POST['contact1'])),
         'contact2'           => sanitize_text_field(wp_unslash($_POST['contact2'] ?? '')),
