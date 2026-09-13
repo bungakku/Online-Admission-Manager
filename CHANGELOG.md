@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.12] - 2026-09-12
+
+### Fixed
+- **Critical**: neither of the plugin's two database tables (`wp_admission_submissions`, `wp_admission_academic_records`) could ever be created successfully, on any installation. Root cause found via the v1.1.11 self-heal check's own error log output: both `CREATE TABLE` statements declared the `id` column's primary key twice — once inline (`id INT AUTO_INCREMENT PRIMARY KEY`) and once again explicitly (`PRIMARY KEY  (id)`), which is invalid SQL. Reproduced the exact `ERROR 1068 (42000): Multiple primary key defined` against a real MariaDB 10.11 server to confirm before shipping a fix, then verified the corrected schema against the same server: table creation, `DESCRIBE` output, and full realistic `INSERT`/`SELECT` round-trips on both tables (including the `submission_id` linkage) all succeed.
+- Changed both tables' `id` column to `id INT NOT NULL AUTO_INCREMENT` (removing the inline `PRIMARY KEY`), keeping the existing `PRIMARY KEY  (id)` clause — the two-space-before-parenthesis formatting `dbDelta()` specifically requires was already correct and is unchanged.
+- Bumped `ADM_MGR_DB_VERSION` (previously untouched since v1.1.0) so `adm_mgr_maybe_migrate()` proactively re-runs `adm_mgr_activate()` on the very next admin page load for any existing install, in addition to the v1.1.11 self-heal check that already covers the next submission attempt. No data migration needed — this only affects table creation, not any existing rows (and no install has ever had rows in these tables, since they could never be created in the first place).
+
 ## [1.1.11] - 2026-09-11
 
 ### Fixed

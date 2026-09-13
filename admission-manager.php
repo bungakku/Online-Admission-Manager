@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.
- * Version:           1.1.11
+ * Version:           1.1.12
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,13 +20,13 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.11');
+define('ADM_MGR_VERSION', '1.1.12');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
 define('ADM_MGR_BASENAME', plugin_basename(__FILE__));
 define('ADM_MGR_UPLOAD_DIR', 'admission_uploads');
-define('ADM_MGR_DB_VERSION', '1.1.0');
+define('ADM_MGR_DB_VERSION', '1.1.12');
 
 // GitHub repository used for update checks (see "Updates" section below).
 define('ADM_MGR_GITHUB_OWNER', 'bungakku');
@@ -361,7 +361,7 @@ function adm_mgr_activate() {
     // purposes without ever needing to decrypt the full number.
     $table_main = $wpdb->prefix . 'admission_submissions';
     $sql_main = "CREATE TABLE $table_main (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id INT NOT NULL AUTO_INCREMENT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         name VARCHAR(255) NOT NULL,
         email VARCHAR(100),
@@ -397,7 +397,7 @@ function adm_mgr_activate() {
     // Academic records table
     $table_academic = $wpdb->prefix . 'admission_academic_records';
     $sql_academic = "CREATE TABLE $table_academic (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id INT NOT NULL AUTO_INCREMENT,
         submission_id INT NOT NULL,
         exam_name VARCHAR(255) NOT NULL,
         year_passing VARCHAR(10) NOT NULL,
