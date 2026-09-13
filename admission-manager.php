@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.
- * Version:           1.1.12
+ * Version:           1.1.13
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.12');
+define('ADM_MGR_VERSION', '1.1.13');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -1809,6 +1809,7 @@ function adm_mgr_render_form() {
                     <label><?php esc_html_e('State of Domicile:', 'admission-mgr'); ?> <input type="text" name="state_domicile" data-field="state_domicile" required <?php disabled(!$is_open); ?>></label>
                     <label><?php esc_html_e('Category:', 'admission-mgr'); ?>
                         <select name="category" data-field="category" required <?php disabled(!$is_open); ?>>
+                            <option value=""><?php esc_html_e('Select', 'admission-mgr'); ?></option>
                             <option>Gen</option><option>ST</option><option>SC</option><option>OBC</option>
                         </select>
                     </label>
@@ -1993,6 +1994,22 @@ function adm_mgr_handle_submission() {
 
     if (!preg_match('/^[0-9]{12}$/', sanitize_text_field(wp_unslash($_POST['aadhar_number'])))) {
         adm_mgr_output_message(__('Aadhar number must be exactly 12 digits.', 'admission-mgr'), 'error');
+        return;
+    }
+
+    // Whitelist validation: these are select-driven fields with real
+    // administrative/legal weight (especially category, for reservation
+    // purposes), so a crafted POST must not be able to store an arbitrary
+    // string here just because sanitize_text_field() alone would accept it.
+    $allowed_sex = array('Male', 'Female', 'Other');
+    if (!in_array(sanitize_text_field(wp_unslash($_POST['sex'])), $allowed_sex, true)) {
+        adm_mgr_output_message(__('Please select a valid option for Sex.', 'admission-mgr'), 'error');
+        return;
+    }
+
+    $allowed_category = array('Gen', 'ST', 'SC', 'OBC');
+    if (!in_array(sanitize_text_field(wp_unslash($_POST['category'])), $allowed_category, true)) {
+        adm_mgr_output_message(__('Please select a valid option for Category.', 'admission-mgr'), 'error');
         return;
     }
 

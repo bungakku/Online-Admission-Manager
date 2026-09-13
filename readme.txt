@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.12
+Stable tag: 1.1.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,10 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 
 == Changelog ==
 
+= 1.1.13 =
+* Category field now has a blank "Select" default, matching Sex — applicants must consciously choose rather than silently submitting "Gen" by default.
+* Added server-side validation for Sex and Category: only the exact options shown in the form are accepted, closing off a crafted submission storing an arbitrary value in either field.
+
 = 1.1.12 =
 * Critical fix: the plugin's own database tables could never actually be created, on any install, ever — the CREATE TABLE statements declared a primary key twice ("id INT AUTO_INCREMENT PRIMARY KEY" plus a separate "PRIMARY KEY (id)" clause), which MySQL/MariaDB correctly rejects with "Multiple primary key defined". Confirmed by reproducing the exact error against a real MariaDB server. Fixed both tables. Existing sites will have their tables correctly created automatically the next time an admin page loads or an application is submitted — no manual steps needed.
 
@@ -143,6 +147,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.13 =
+Category now requires an explicit selection (no more silent default), and Sex/Category are validated server-side. No database changes.
 
 = 1.1.12 =
 Critical: fixes a SQL error that prevented the plugin's database tables from ever being created successfully. Update immediately. Tables are recreated automatically after updating — no manual database steps needed.

@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.13] - 2026-09-13
+
+### Fixed
+- Category field had no blank default option, unlike Sex — an inattentive applicant could silently submit "Gen" without ever consciously choosing. Added a blank required "Select" option, mirroring the existing Sex field pattern.
+- Neither Sex nor Category were validated server-side beyond `sanitize_text_field()` — a crafted POST request could store an arbitrary string in either field, which matters for Category specifically since it carries real administrative/legal weight (reservation category) for Indian admissions. Added a strict whitelist check (`Male`/`Female`/`Other` for Sex, `Gen`/`ST`/`SC`/`OBC` for Category) placed after the existing required-fields and Aadhar-format checks, so a blank submission still gets the existing "is required" message while a non-blank-but-invalid value gets a new, specific "please select a valid option" message.
+- Verified the whitelist logic directly across 14 scenarios: all four valid Category values and all three valid Sex values pass, case-mismatched values are correctly rejected (whitelist is case-sensitive, matching the exact option text), an unlisted-but-plausible value (e.g. "EWS") is correctly rejected, and an empty value is correctly rejected (in practice caught earlier by the required-fields check).
+
 ## [1.1.12] - 2026-09-12
 
 ### Fixed
