@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.14] - 2026-09-13
+
+### Fixed
+- CSV export produced a mangled file: the entire admin page's HTML (doctype, admin bar, toolbar, menus, contextual help markup — everything WordPress renders around a page) appeared as ~180 malformed pseudo-rows, with the actual, correctly-structured CSV data only appearing at the very end. Root cause: the export ran from inside `adm_mgr_entries_page()`, the callback WordPress registers for the "Admissions" menu page — but WordPress's own admin template (`wp-admin/admin.php`) already sends the page's `<html>`/`<head>`/admin-bar/menu HTML *before* calling that callback. By the time our code tried to send `Content-Type: text/csv` and `Content-Disposition: attachment` headers, headers were already sent (silently, since `WP_DEBUG_DISPLAY` is off), so they were no-ops, and the real CSV output got appended after whatever HTML WordPress had already flushed.
+- Moved `adm_mgr_export_csv()` to run via `admin_post_adm_mgr_export_csv` (WordPress's `admin-post.php` entry point), which renders no page template at all — a clean slate for custom headers and output, the same pattern this plugin already uses for the manual update-check action. The export link now points to `admin-post.php?action=adm_mgr_export_csv` instead of `admin.php?page=admission-entries&export_csv=1`. Added the function's own `check_admin_referer()` call, since it's now a directly-reachable endpoint rather than a block inside an already-nonce-checked page.
+- No functional change to the CSV content itself — same columns, same masked Aadhar, same academic-records JSON — only how the response reaches the browser.
+
 ## [1.1.13] - 2026-09-13
 
 ### Fixed

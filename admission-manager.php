@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.
- * Version:           1.1.13
+ * Version:           1.1.14
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.13');
+define('ADM_MGR_VERSION', '1.1.14');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -1399,14 +1399,6 @@ function adm_mgr_entries_page() {
     global $wpdb;
     $table_main = $wpdb->prefix . 'admission_submissions';
 
-    // Handle CSV export
-    if (isset($_GET['export_csv']) && isset($_GET['_wpnonce'])
-        && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'adm_mgr_export_csv')
-    ) {
-        adm_mgr_export_csv();
-        exit;
-    }
-
     // Handle deletion
     if (isset($_GET['action'], $_GET['id'], $_GET['_wpnonce'])
         && 'delete' === $_GET['action']
@@ -1427,7 +1419,7 @@ function adm_mgr_entries_page() {
     $total        = (int) $wpdb->get_var("SELECT COUNT(*) FROM $table_main");
     $entries      = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table_main ORDER BY created_at DESC LIMIT %d OFFSET %d", $per_page, $offset));
 
-    $export_url = wp_nonce_url(admin_url('admin.php?page=admission-entries&export_csv=1'), 'adm_mgr_export_csv');
+    $export_url = wp_nonce_url(admin_url('admin-post.php?action=adm_mgr_export_csv'), 'adm_mgr_export_csv');
     ?>
     <div class="wrap">
         <h1><?php esc_html_e('Admission Applications', 'admission-mgr'); ?></h1>
@@ -1598,11 +1590,23 @@ function adm_mgr_entries_page() {
 
 /**
  * CSV export of all submissions plus their academic records (as JSON).
+ *
+ * Hooked to admin_post so this runs before WordPress renders any admin
+ * page HTML. The previous implementation ran from inside the "Admissions"
+ * page's own callback, which WordPress only calls AFTER it has already
+ * sent the admin page's <html>/<head>/toolbar/menu output — by that point
+ * headers are already sent, so the Content-Type/Content-Disposition
+ * headers below silently failed, and the "download" actually contained
+ * the whole admin page's HTML with the real CSV data appended at the end.
+ * admin-post.php is a minimal entry point that renders no page template
+ * at all, so this is a clean slate to send our own headers and output.
  */
+add_action('admin_post_adm_mgr_export_csv', 'adm_mgr_export_csv');
 function adm_mgr_export_csv() {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('You do not have permission to do this.', 'admission-mgr'));
     }
+    check_admin_referer('adm_mgr_export_csv');
 
     global $wpdb;
     $table_main     = $wpdb->prefix . 'admission_submissions';

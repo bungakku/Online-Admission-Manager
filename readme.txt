@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.13
+Stable tag: 1.1.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 
 == Changelog ==
 
+= 1.1.14 =
+* Fixed CSV export producing a mangled file containing the entire admin page's HTML with the real data appended at the end, instead of a clean CSV. The export ran from inside the Admissions page's own callback, which WordPress only calls after it has already sent the page's HTML — too late to send file-download headers. Moved the export to run via admin-post.php, a dedicated endpoint that renders no page around it, giving it a clean response to work with.
+
 = 1.1.13 =
 * Category field now has a blank "Select" default, matching Sex — applicants must consciously choose rather than silently submitting "Gen" by default.
 * Added server-side validation for Sex and Category: only the exact options shown in the form are accepted, closing off a crafted submission storing an arbitrary value in either field.
@@ -147,6 +150,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.14 =
+Fixes CSV export producing a mangled file (admin page HTML mixed in with the real data) instead of a clean CSV. No database changes.
 
 = 1.1.13 =
 Category now requires an explicit selection (no more silent default), and Sex/Category are validated server-side. No database changes.
