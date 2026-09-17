@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.15] - 2026-09-14
+
+### Added
+- New "Export All to Excel" option (`.xlsx`) alongside the existing CSV export. Built with a minimal, dependency-free XLSX writer (`adm_mgr_write_xlsx()`) rather than bundling a third-party library like PhpSpreadsheet — consistent with this plugin having no external dependencies beyond jQuery, which WordPress itself already bundles. Every cell is written as inline text rather than using Excel's numeric cell type, which deliberately prevents Excel from stripping leading zeros from numeric-looking values (phone numbers, PIN codes) — a real, common problem when opening plain CSV data in Excel. Column widths are pre-calculated from actual content length (capped at 50 characters) and embedded directly in the file, achieving the same visual result as Excel's "auto-fit" without depending on the person opening the file to do it themselves — CSV has no way to do this at all, since plain-text CSV carries no column-width metadata whatsoever.
+- Verified extensively using an independent Python library (`openpyxl`), not just "the XML looks right": confirmed zero-warning loads, full round-trip of special characters (ampersands, quotes, angle brackets, apostrophes) through the escaping logic, correct column widths, correct bold header styling, ZIP archive integrity, and correct behavior at both small and 50-row scale.
+
+### Changed
+- Academic records now export as a readable summary string (e.g. "HSSCE (2025) - Division: 1, Marks: 61%, Board: CBSE, Subjects: Physics, Chemistry, Maths, Computer") in both the CSV and new Excel exports, instead of a raw JSON blob in one cell — reported as looking like unreadable "code" to a non-technical admin. Multiple exam records for one applicant are joined with "; ". Added `adm_mgr_format_academic_summary()` and a new shared `adm_mgr_get_export_data()` helper so both export formats pull from exactly the same data-fetching and formatting logic, removing the duplication that would otherwise exist between the two export functions.
+
 ## [1.1.14] - 2026-09-13
 
 ### Fixed

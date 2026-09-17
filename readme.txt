@@ -4,11 +4,11 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.14
+Stable tag: 1.1.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Complete online admission form for schools and colleges, with academic records, file uploads, an admin panel, admission-window control, email confirmation, CSV export, and a payment QR code.
+Complete online admission form for schools and colleges, with academic records, file uploads, an admin panel, admission-window control, email confirmation, CSV/Excel export, and a payment QR code.
 
 == Description ==
 
@@ -26,7 +26,7 @@ Online Admission Manager adds a fully featured admission/enquiry form to any pag
 * A honeypot field and basic per-IP rate limiting help filter out bot submissions
 * Admission window control — set a start/end date and the form automatically disables itself outside that window
 * Email confirmation to the applicant plus a notification to the admin on every submission
-* Admin panel to browse, view, and delete submissions, with CSV export of everything (including academic records)
+* Admin panel to browse, view, and delete submissions, with export to CSV or Excel (.xlsx, with auto-sized columns) — both include academic records as a readable summary
 * Optional payment QR code shown next to the payment-proof upload field
 * Mobile-friendly, edge-to-edge responsive layout
 * Built-in update checker against GitHub Releases, so WordPress shows update notifications the same way it would for a wordpress.org-hosted plugin
@@ -78,6 +78,10 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 4. Admin entries list with CSV export.
 
 == Changelog ==
+
+= 1.1.15 =
+* Academic records now export as a readable summary (e.g. "HSSCE (2025) - Division: 1, Marks: 61%, Board: CBSE, Subjects: Physics, Chemistry") instead of raw JSON, in both CSV and the new Excel export.
+* Added a new "Export All to Excel" option alongside CSV. Unlike CSV, which has no concept of column width at all, the Excel file has genuinely auto-sized columns built in — no manual "auto-fit" step needed in your spreadsheet app.
 
 = 1.1.14 =
 * Fixed CSV export producing a mangled file containing the entire admin page's HTML with the real data appended at the end, instead of a clean CSV. The export ran from inside the Admissions page's own callback, which WordPress only calls after it has already sent the page's HTML — too late to send file-download headers. Moved the export to run via admin-post.php, a dedicated endpoint that renders no page around it, giving it a clean response to work with.
@@ -150,6 +154,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.15 =
+Adds a new Excel export with auto-sized columns, and academic records now export as readable text instead of raw JSON. No database changes.
 
 = 1.1.14 =
 Fixes CSV export producing a mangled file (admin page HTML mixed in with the real data) instead of a clean CSV. No database changes.

@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
- * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.
- * Version:           1.1.14
+ * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV/Excel export, and payment QR code.
+ * Version:           1.1.15
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.14');
+define('ADM_MGR_VERSION', '1.1.15');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -181,7 +181,7 @@ function adm_mgr_plugins_api_details($result, $action, $args) {
         'author'        => '<a href="https://github.com/' . ADM_MGR_GITHUB_OWNER . '/' . ADM_MGR_GITHUB_REPO . '">Biswajit Thokchom</a>',
         'homepage'      => 'https://github.com/' . ADM_MGR_GITHUB_OWNER . '/' . ADM_MGR_GITHUB_REPO,
         'sections'      => array(
-            'description' => __('Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV export, and payment QR code.', 'admission-mgr'),
+            'description' => __('Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV/Excel export, and payment QR code.', 'admission-mgr'),
             'changelog'   => wpautop(wp_kses_post($release['changelog'])),
         ),
         'download_link' => $release['download_url'],
@@ -1420,6 +1420,7 @@ function adm_mgr_entries_page() {
     $entries      = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table_main ORDER BY created_at DESC LIMIT %d OFFSET %d", $per_page, $offset));
 
     $export_url = wp_nonce_url(admin_url('admin-post.php?action=adm_mgr_export_csv'), 'adm_mgr_export_csv');
+    $export_xlsx_url = wp_nonce_url(admin_url('admin-post.php?action=adm_mgr_export_xlsx'), 'adm_mgr_export_xlsx');
     ?>
     <div class="wrap">
         <h1><?php esc_html_e('Admission Applications', 'admission-mgr'); ?></h1>
@@ -1427,6 +1428,10 @@ function adm_mgr_entries_page() {
             <a href="<?php echo esc_url($export_url); ?>" class="button button-primary">
                 <?php esc_html_e('Export All to CSV', 'admission-mgr'); ?>
             </a>
+            <a href="<?php echo esc_url($export_xlsx_url); ?>" class="button button-secondary">
+                <?php esc_html_e('Export All to Excel', 'admission-mgr'); ?>
+            </a>
+            <p class="description" style="margin-top:6px;"><?php esc_html_e('Excel export has genuinely auto-sized columns built in. CSV columns are sized by whatever program opens the file — most spreadsheet apps have a one-click "auto-fit column width" option if needed.', 'admission-mgr'); ?></p>
         </div>
         <table class="wp-list-table widefat fixed striped">
             <thead>
@@ -1589,7 +1594,99 @@ function adm_mgr_entries_page() {
 }
 
 /**
- * CSV export of all submissions plus their academic records (as JSON).
+ * Convert a submission's academic records into a readable summary string
+ * instead of raw JSON — e.g. "HSSCE (2025) - Division: 1, Marks: 61%,
+ * Board: CBSE, Subjects: Physics, Chemistry". Multiple records (an
+ * applicant can have more than one exam) are joined with "; ". Used by
+ * both the CSV and Excel exports so opening either in a spreadsheet
+ * doesn't confront a school admin with unformatted JSON.
+ */
+function adm_mgr_format_academic_summary($academic_records) {
+    if (empty($academic_records)) {
+        return '';
+    }
+    $parts = array();
+    foreach ($academic_records as $rec) {
+        $rec = (array) $rec;
+        $line = trim($rec['exam_name'] ?? '');
+        if (!empty($rec['year_passing'])) {
+            $line .= ' (' . $rec['year_passing'] . ')';
+        }
+        $detail_bits = array();
+        if (!empty($rec['class_division'])) {
+            $detail_bits[] = 'Division: ' . $rec['class_division'];
+        }
+        if (!empty($rec['percentage_marks'])) {
+            $detail_bits[] = 'Marks: ' . $rec['percentage_marks'] . '%';
+        }
+        if (!empty($rec['board_university'])) {
+            $detail_bits[] = 'Board: ' . $rec['board_university'];
+        }
+        if (!empty($rec['subjects_offered'])) {
+            $detail_bits[] = 'Subjects: ' . $rec['subjects_offered'];
+        }
+        if (!empty($detail_bits)) {
+            $line .= ' - ' . implode(', ', $detail_bits);
+        }
+        $parts[] = $line;
+    }
+    return implode('; ', $parts);
+}
+
+/**
+ * Shared data-gathering for both export formats, so CSV and Excel always
+ * present identical headers and content. Returns false if there's nothing
+ * to export.
+ */
+function adm_mgr_get_export_data() {
+    global $wpdb;
+    $table_main     = $wpdb->prefix . 'admission_submissions';
+    $table_academic = $wpdb->prefix . 'admission_academic_records';
+
+    $submissions = $wpdb->get_results("SELECT * FROM $table_main ORDER BY id ASC");
+    if (empty($submissions)) {
+        return false;
+    }
+
+    $headers = array(
+        'ID', 'Date', 'Name', 'Email', 'WhatsApp', 'Alternate Contact',
+        'Father Name', 'Father Contact1', 'Father Contact2',
+        'Mother Name', 'Mother Contact1', 'Mother Contact2',
+        'Permanent Address', 'Present Address', 'Pin Code',
+        'DOB', 'Sex', 'Nationality', 'Blood Group', 'Aadhar Number (masked)', 'Country',
+        'State Domicile', 'Category', 'Last School/College', 'Course Seeking',
+        'Academic Records', 'Passport Photo URL', 'Payment Proof URL', 'Scanned Docs URLs',
+    );
+
+    $rows = array();
+    foreach ($submissions as $sub) {
+        $academic = $wpdb->get_results($wpdb->prepare(
+            "SELECT exam_name, year_passing, class_division, percentage_marks, board_university, subjects_offered FROM $table_academic WHERE submission_id = %d",
+            $sub->id
+        ));
+        // Aadhar is intentionally exported masked (last 4 digits only).
+        // Export files are routinely emailed, synced to cloud drives, or
+        // stored unencrypted on a laptop, so the full number is never
+        // included here even though it's encrypted at rest in the
+        // database. Use the "Reveal" button on an individual entry if the
+        // full number is genuinely needed.
+        $rows[] = array(
+            $sub->id, $sub->created_at, $sub->name, $sub->email, $sub->contact1, $sub->contact2,
+            $sub->father_name, $sub->father_contact1, $sub->father_contact2,
+            $sub->mother_name, $sub->mother_contact1, $sub->mother_contact2,
+            $sub->permanent_address, $sub->present_address, $sub->present_pin_code,
+            $sub->dob, $sub->sex, $sub->nationality, $sub->blood_group, adm_mgr_format_aadhar_for_admin($sub), $sub->country,
+            $sub->state_domicile, $sub->category, $sub->last_school, $sub->course_seeking,
+            adm_mgr_format_academic_summary($academic), $sub->passport_photo, $sub->payment_proof, $sub->scanned_documents,
+        );
+    }
+
+    return array('headers' => $headers, 'rows' => $rows);
+}
+
+/**
+ * CSV export of all submissions plus their academic records (as a
+ * readable summary, not raw JSON).
  *
  * Hooked to admin_post so this runs before WordPress renders any admin
  * page HTML. The previous implementation ran from inside the "Admissions"
@@ -1608,12 +1705,8 @@ function adm_mgr_export_csv() {
     }
     check_admin_referer('adm_mgr_export_csv');
 
-    global $wpdb;
-    $table_main     = $wpdb->prefix . 'admission_submissions';
-    $table_academic = $wpdb->prefix . 'admission_academic_records';
-
-    $submissions = $wpdb->get_results("SELECT * FROM $table_main ORDER BY id ASC");
-    if (empty($submissions)) {
+    $export = adm_mgr_get_export_data();
+    if (false === $export) {
         wp_die(esc_html__('No data to export.', 'admission-mgr'));
     }
 
@@ -1623,39 +1716,201 @@ function adm_mgr_export_csv() {
     header('Content-Disposition: attachment; filename=' . $filename);
     $output = fopen('php://output', 'w');
 
-    fputcsv($output, array(
-        'ID', 'Date', 'Name', 'Email', 'WhatsApp', 'Alternate Contact',
-        'Father Name', 'Father Contact1', 'Father Contact2',
-        'Mother Name', 'Mother Contact1', 'Mother Contact2',
-        'Permanent Address', 'Present Address', 'Pin Code',
-        'DOB', 'Sex', 'Nationality', 'Blood Group', 'Aadhar Number (masked)', 'Country',
-        'State Domicile', 'Category', 'Last School/College', 'Course Seeking',
-        'Subjects (JSON)', 'Passport Photo URL', 'Payment Proof URL', 'Scanned Docs URLs',
-    ));
-
-    foreach ($submissions as $sub) {
-        $academic = $wpdb->get_results($wpdb->prepare(
-            "SELECT exam_name, year_passing, class_division, percentage_marks, board_university, subjects_offered FROM $table_academic WHERE submission_id = %d",
-            $sub->id
-        ));
-        $academic_json = wp_json_encode($academic);
-        // Aadhar is intentionally exported masked (last 4 digits only). CSV
-        // files are routinely emailed, synced to cloud drives, or stored
-        // unencrypted on a laptop, so the full number is never included
-        // here even though it's encrypted at rest in the database. Use the
-        // "Reveal" button on an individual entry if the full number is
-        // genuinely needed.
-        fputcsv($output, array(
-            $sub->id, $sub->created_at, $sub->name, $sub->email, $sub->contact1, $sub->contact2,
-            $sub->father_name, $sub->father_contact1, $sub->father_contact2,
-            $sub->mother_name, $sub->mother_contact1, $sub->mother_contact2,
-            $sub->permanent_address, $sub->present_address, $sub->present_pin_code,
-            $sub->dob, $sub->sex, $sub->nationality, $sub->blood_group, adm_mgr_format_aadhar_for_admin($sub), $sub->country,
-            $sub->state_domicile, $sub->category, $sub->last_school, $sub->course_seeking,
-            $academic_json, $sub->passport_photo, $sub->payment_proof, $sub->scanned_documents,
-        ));
+    fputcsv($output, $export['headers']);
+    foreach ($export['rows'] as $row) {
+        fputcsv($output, $row);
     }
     fclose($output);
+    exit;
+}
+
+/**
+ * ---------------------------------------------------------------------------
+ * Minimal, dependency-free XLSX (Excel) writer.
+ *
+ * No third-party library (e.g. PhpSpreadsheet) is bundled — consistent
+ * with this plugin having no external dependencies beyond jQuery, which
+ * WordPress itself already bundles. An .xlsx file is a ZIP archive of a
+ * handful of XML parts; this builds the minimum valid set. Every cell is
+ * written as inline text (no shared-strings table, no numeric cell types)
+ * deliberately: treating every value as text stops Excel from "helpfully"
+ * stripping leading zeros from numeric-looking values like phone numbers
+ * or PIN codes, a common real problem when opening plain CSV data in
+ * Excel. Column widths are pre-calculated from content length and
+ * embedded directly, achieving the same effect as Excel's "auto-fit"
+ * without depending on Excel (or the person opening the file) to do it.
+ * ---------------------------------------------------------------------------
+ */
+function adm_mgr_xlsx_strlen($string) {
+    return function_exists('mb_strlen') ? mb_strlen($string, 'UTF-8') : strlen($string);
+}
+
+function adm_mgr_xlsx_col_letter($col_index) {
+    $letter = '';
+    $col_index++;
+    while ($col_index > 0) {
+        $mod = ($col_index - 1) % 26;
+        $letter = chr(65 + $mod) . $letter;
+        $col_index = intval(($col_index - $mod) / 26);
+    }
+    return $letter;
+}
+
+function adm_mgr_xlsx_escape($text) {
+    $text = (string) $text;
+    // Strip control characters invalid in XML 1.0 (everything below 0x20
+    // except tab/LF/CR), then XML-escape the rest.
+    $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $text);
+    return htmlspecialchars($text, ENT_XML1 | ENT_COMPAT, 'UTF-8');
+}
+
+function adm_mgr_write_xlsx($output_path, $headers, $rows) {
+    $col_count = count($headers);
+
+    $max_len = array_fill(0, $col_count, 0);
+    foreach ($headers as $i => $h) {
+        $max_len[$i] = max($max_len[$i], adm_mgr_xlsx_strlen((string) $h));
+    }
+    foreach ($rows as $row) {
+        foreach (array_values($row) as $i => $val) {
+            if (isset($max_len[$i])) {
+                // Only measure the first line, so one very long multi-line
+                // address doesn't blow out the column width.
+                $first_line = strtok((string) $val, "\n");
+                $max_len[$i] = max($max_len[$i], adm_mgr_xlsx_strlen($first_line));
+            }
+        }
+    }
+    $widths = array();
+    foreach ($max_len as $len) {
+        $widths[] = min(50, max(8, $len + 2));
+    }
+
+    $cols_xml = '<cols>';
+    foreach ($widths as $i => $w) {
+        $col_num = $i + 1;
+        $cols_xml .= '<col min="' . $col_num . '" max="' . $col_num . '" width="' . $w . '" customWidth="1"/>';
+    }
+    $cols_xml .= '</cols>';
+
+    $sheet_rows = '';
+    $row_num = 1;
+    $header_cells = '';
+    foreach ($headers as $i => $h) {
+        $ref = adm_mgr_xlsx_col_letter($i) . $row_num;
+        $header_cells .= '<c r="' . $ref . '" t="inlineStr" s="1"><is><t xml:space="preserve">' . adm_mgr_xlsx_escape($h) . '</t></is></c>';
+    }
+    $sheet_rows .= '<row r="' . $row_num . '">' . $header_cells . '</row>';
+    $row_num++;
+
+    foreach ($rows as $row) {
+        $cells = '';
+        foreach (array_values($row) as $i => $val) {
+            $ref = adm_mgr_xlsx_col_letter($i) . $row_num;
+            $cells .= '<c r="' . $ref . '" t="inlineStr"><is><t xml:space="preserve">' . adm_mgr_xlsx_escape($val) . '</t></is></c>';
+        }
+        $sheet_rows .= '<row r="' . $row_num . '">' . $cells . '</row>';
+        $row_num++;
+    }
+
+    $content_types = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' .
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' .
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' .
+        '<Default Extension="xml" ContentType="application/xml"/>' .
+        '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' .
+        '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' .
+        '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' .
+        '</Types>';
+
+    $rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' .
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' .
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' .
+        '</Relationships>';
+
+    $workbook = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' .
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' .
+        '<sheets><sheet name="Admissions" sheetId="1" r:id="rId1"/></sheets>' .
+        '</workbook>';
+
+    $workbook_rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' .
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' .
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' .
+        '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' .
+        '</Relationships>';
+
+    $styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' .
+        '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' .
+        '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>' .
+        '<fills count="1"><fill><patternFill patternType="none"/></fill></fills>' .
+        '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' .
+        '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' .
+        '<cellXfs count="2">' .
+        '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' .
+        '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' .
+        '</cellXfs>' .
+        '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' .
+        '</styleSheet>';
+
+    $sheet1 = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' .
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' .
+        $cols_xml .
+        '<sheetData>' . $sheet_rows . '</sheetData>' .
+        '</worksheet>';
+
+    $zip = new ZipArchive();
+    if (true !== $zip->open($output_path, ZipArchive::CREATE | ZipArchive::OVERWRITE)) {
+        return false;
+    }
+    $zip->addEmptyDir('_rels');
+    $zip->addEmptyDir('xl');
+    $zip->addEmptyDir('xl/_rels');
+    $zip->addEmptyDir('xl/worksheets');
+    $zip->addFromString('[Content_Types].xml', $content_types);
+    $zip->addFromString('_rels/.rels', $rels);
+    $zip->addFromString('xl/workbook.xml', $workbook);
+    $zip->addFromString('xl/_rels/workbook.xml.rels', $workbook_rels);
+    $zip->addFromString('xl/styles.xml', $styles);
+    $zip->addFromString('xl/worksheets/sheet1.xml', $sheet1);
+    $zip->close();
+    return true;
+}
+
+/**
+ * Excel (.xlsx) export, alongside the existing CSV export. Offered
+ * specifically for admins who want genuinely auto-sized columns — CSV is
+ * a plain-text format with no concept of column width at all, so that can
+ * only ever be a spreadsheet-app feature (Excel/Sheets "auto-fit"), never
+ * something embedded in a .csv file itself.
+ */
+add_action('admin_post_adm_mgr_export_xlsx', 'adm_mgr_export_xlsx');
+function adm_mgr_export_xlsx() {
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('You do not have permission to do this.', 'admission-mgr'));
+    }
+    check_admin_referer('adm_mgr_export_xlsx');
+
+    if (!class_exists('ZipArchive')) {
+        wp_die(esc_html__('Excel export requires the PHP zip extension, which is not available on this server. Please use the CSV export instead.', 'admission-mgr'));
+    }
+
+    $export = adm_mgr_get_export_data();
+    if (false === $export) {
+        wp_die(esc_html__('No data to export.', 'admission-mgr'));
+    }
+
+    $tmp_file = wp_tempnam('adm-mgr-export.xlsx');
+    if (!adm_mgr_write_xlsx($tmp_file, $export['headers'], $export['rows'])) {
+        @unlink($tmp_file);
+        wp_die(esc_html__('Failed to generate the Excel file.', 'admission-mgr'));
+    }
+
+    $filename = 'admissions_' . gmdate('Y-m-d') . '.xlsx';
+    nocache_headers();
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment; filename=' . $filename);
+    header('Content-Length: ' . filesize($tmp_file));
+    readfile($tmp_file);
+    @unlink($tmp_file);
     exit;
 }
 

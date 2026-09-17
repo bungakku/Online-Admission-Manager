@@ -2,7 +2,7 @@
 
 A WordPress plugin that adds a complete online admission/enquiry form to any page via a shortcode — built for schools, colleges, and coaching institutes.
 
-[![Release](https://img.shields.io/badge/release-v1.1.14-blue.svg)](https://github.com/bungakku/Online-Admission-Manager/releases)
+[![Release](https://img.shields.io/badge/release-v1.1.15-blue.svg)](https://github.com/bungakku/Online-Admission-Manager/releases)
 [![License: GPL v2+](https://img.shields.io/badge/license-GPLv2%2B-green.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 
 ## Features
@@ -17,7 +17,7 @@ A WordPress plugin that adds a complete online admission/enquiry form to any pag
 - Honeypot + basic per-IP rate limiting against bot submissions
 - Admission window control (start/end date) — the form auto-disables outside the window
 - Email confirmation to applicants + admin notification on submission
-- Admin panel: browse, view, delete entries; CSV export of all data including academic records
+- Admin panel: browse, view, delete entries; export all data (including academic records) as CSV or Excel (.xlsx, with auto-sized columns)
 - Optional payment QR code next to the payment-proof upload
 - Fully responsive — the form uses the full available width on mobile instead of leaving large side gutters
 - **Self-updating** — checks GitHub Releases and surfaces updates on the normal WordPress Plugins page
