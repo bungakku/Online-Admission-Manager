@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV/Excel export, and payment QR code.
- * Version:           1.1.16
+ * Version:           1.1.17
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.16');
+define('ADM_MGR_VERSION', '1.1.17');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -2306,6 +2306,27 @@ function adm_mgr_handle_submission() {
         return;
     }
 
+    // Email is optional, but if the applicant typed one it must be valid.
+    // Previously only sanitize_email() was applied at save time, which
+    // silently turns a malformed address into an empty string: the
+    // application was accepted, no confirmation email was ever sent, and
+    // the applicant was never told. Browsers' type="email" check is looser
+    // than WordPress's is_email() (e.g. it accepts "name@localhost"), so it
+    // has to be enforced server-side. The typed value itself is validated
+    // (not the sanitized one), so a bad address can't be quietly "repaired"
+    // into a different, valid-looking one. This runs before any file is
+    // written, so a rejection here can never orphan uploads.
+    $applicant_email = '';
+    $email_raw       = isset($_POST['email']) ? wp_unslash($_POST['email']) : '';
+    $email_input     = is_string($email_raw) ? trim($email_raw) : false;
+    if ('' !== $email_input) {
+        if (false === $email_input || !is_email($email_input)) {
+            adm_mgr_output_message(__('Please enter a valid email address, or leave the email field blank.', 'admission-mgr'), 'error');
+            return;
+        }
+        $applicant_email = sanitize_email($email_input);
+    }
+
     // File upload handling
     $upload_dir         = wp_upload_dir();
     $plugin_upload_dir  = $upload_dir['basedir'] . '/' . ADM_MGR_UPLOAD_DIR;
@@ -2389,7 +2410,7 @@ function adm_mgr_handle_submission() {
 
     $data = array(
         'name'               => adm_mgr_to_uppercase(sanitize_text_field(wp_unslash($_POST['applicant_name']))),
-        'email'              => sanitize_email(wp_unslash($_POST['email'] ?? '')),
+        'email'              => $applicant_email,
         'contact1'           => sanitize_text_field(wp_unslash($_POST['contact1'])),
         'contact2'           => sanitize_text_field(wp_unslash($_POST['contact2'] ?? '')),
         'father_name'        => sanitize_text_field(wp_unslash($_POST['father_name'])),

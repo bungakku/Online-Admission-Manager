@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.17] - 2026-09-20
+
+### Fixed
+- Invalid applicant email silently dropped: `adm_mgr_handle_submission()` only ran `sanitize_email()` on the email field when building the DB row, which returns an empty string for a malformed address. The application was accepted with a blank email, `adm_mgr_send_confirmation_email()` was skipped (it only runs when the email is non-empty), and the applicant got no indication anything was wrong.
+- Added server-side validation after the Sex/Category whitelist checks and before any file handling: if an email was typed, it is trimmed and must pass `is_email()`; otherwise the submission is rejected with a specific message and nothing is written to disk or the database (so no orphaned uploads). Email stays optional — blank or absent is still accepted. The typed value is validated rather than the sanitized one, so `sanitize_email()` can't quietly "repair" a bad address into a different valid-looking one (e.g. `john doe@x.com` → `johndoe@x.com`). A non-string value (crafted `email[]=` POST) is rejected instead of reaching `sanitize_email()` as an array. The validated value is stored via `sanitize_email()` as before, so valid addresses are stored byte-identically.
+- Server-side enforcement matters because the form's `type="email"` check is looser than WordPress's `is_email()` (browsers accept `a@b` and `name@localhost`; `is_email()` requires a dotted domain).
+- Verified by running the real `adm_mgr_handle_submission()` (v1.1.16 and v1.1.17 side by side, minimal mocks) against WordPress core's actual `is_email()`/`sanitize_email()` source (fetched from the WordPress repository, not reimplemented) across 12 cases: blank, absent, valid, valid with surrounding whitespace, `+tag`/subdomain, apostrophe → all still proceed past email validation exactly as before; `a@b`, `name@localhost`, embedded space, no-`@`, trailing markup, and array input → all now rejected with the new message (v1.1.16 let every one through). Confirmed `sanitize_email()` leaves every accepted address unchanged.
+- No database schema changes; `ADM_MGR_DB_VERSION` unchanged.
+
 ## [1.1.16] - 2026-09-19
 
 ### Changed
