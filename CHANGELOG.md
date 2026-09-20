@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.16] - 2026-09-19
+
+### Changed
+- CSV/Excel export N+1 query: `adm_mgr_get_export_data()` previously ran one `SELECT` against `wp_admission_academic_records` per submission inside its loop (1 + N queries for N applicants). Added `adm_mgr_get_academic_records_grouped()`, which fetches records for all exported submissions with `WHERE submission_id IN (...)` in chunks of 500 IDs (to avoid oversized `IN` lists on very large tables) and groups them by `submission_id`; the export loop now looks each applicant's records up from that in-memory map. Records keep insertion order (`ORDER BY id ASC`), matching the old per-submission query.
+- Both exports share `adm_mgr_get_export_data()`, so CSV and Excel both benefit. No change to columns, formatting, masking, or file content.
+- Verified against a real MariaDB 10.11 server (real plugin table schema) by running the old and new `adm_mgr_get_export_data()` side by side on identical seeded data: headers and rows are identical (`===`) at 1, 50, 500, 501, and 1,203 submissions — covering the chunk boundary, applicants with zero/one/multiple records (records inserted interleaved so ordering is genuinely exercised), special characters in names, and orphaned academic rows (which are correctly not leaked into the export). Query count for 1,203 submissions: 1,204 before → 4 after (1 + 3 chunks). Empty-table and empty/invalid-ID inputs verified.
+- No database schema changes; `ADM_MGR_DB_VERSION` unchanged.
+
 ## [1.1.15] - 2026-09-14
 
 ### Added

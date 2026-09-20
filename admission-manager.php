@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV/Excel export, and payment QR code.
- * Version:           1.1.15
+ * Version:           1.1.16
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.15');
+define('ADM_MGR_VERSION', '1.1.16');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -1634,14 +1634,47 @@ function adm_mgr_format_academic_summary($academic_records) {
 }
 
 /**
+ * Fetch academic records for many submissions at once and return them
+ * grouped by submission ID: array( submission_id => array( record, ... ) ).
+ *
+ * Replaces a per-submission query inside the export loop (N+1: 1 query
+ * for the submissions plus 1 more for every applicant). IDs are queried
+ * in chunks so a very large table can't produce an oversized IN () list.
+ * Records within each submission keep insertion order (ORDER BY id ASC),
+ * matching the order the old per-submission query returned them in.
+ */
+function adm_mgr_get_academic_records_grouped($submission_ids) {
+    global $wpdb;
+    $table_academic = $wpdb->prefix . 'admission_academic_records';
+
+    $grouped = array();
+    $ids = array_values(array_unique(array_filter(array_map('absint', (array) $submission_ids))));
+    if (empty($ids)) {
+        return $grouped;
+    }
+
+    foreach (array_chunk($ids, 500) as $chunk) {
+        $placeholders = implode(',', array_fill(0, count($chunk), '%d'));
+        $records = $wpdb->get_results($wpdb->prepare(
+            "SELECT submission_id, exam_name, year_passing, class_division, percentage_marks, board_university, subjects_offered FROM $table_academic WHERE submission_id IN ($placeholders) ORDER BY id ASC",
+            $chunk
+        ));
+        foreach ((array) $records as $rec) {
+            $grouped[(int) $rec->submission_id][] = $rec;
+        }
+    }
+
+    return $grouped;
+}
+
+/**
  * Shared data-gathering for both export formats, so CSV and Excel always
  * present identical headers and content. Returns false if there's nothing
  * to export.
  */
 function adm_mgr_get_export_data() {
     global $wpdb;
-    $table_main     = $wpdb->prefix . 'admission_submissions';
-    $table_academic = $wpdb->prefix . 'admission_academic_records';
+    $table_main = $wpdb->prefix . 'admission_submissions';
 
     $submissions = $wpdb->get_results("SELECT * FROM $table_main ORDER BY id ASC");
     if (empty($submissions)) {
@@ -1658,12 +1691,13 @@ function adm_mgr_get_export_data() {
         'Academic Records', 'Passport Photo URL', 'Payment Proof URL', 'Scanned Docs URLs',
     );
 
+    // One batched lookup for every submission's academic records, instead
+    // of one query per submission (N+1).
+    $academic_by_submission = adm_mgr_get_academic_records_grouped(wp_list_pluck($submissions, 'id'));
+
     $rows = array();
     foreach ($submissions as $sub) {
-        $academic = $wpdb->get_results($wpdb->prepare(
-            "SELECT exam_name, year_passing, class_division, percentage_marks, board_university, subjects_offered FROM $table_academic WHERE submission_id = %d",
-            $sub->id
-        ));
+        $academic = isset($academic_by_submission[(int) $sub->id]) ? $academic_by_submission[(int) $sub->id] : array();
         // Aadhar is intentionally exported masked (last 4 digits only).
         // Export files are routinely emailed, synced to cloud drives, or
         // stored unencrypted on a laptop, so the full number is never

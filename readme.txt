@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.15
+Stable tag: 1.1.16
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 4. Admin entries list with CSV export.
 
 == Changelog ==
+
+= 1.1.16 =
+* Performance: CSV and Excel exports no longer run one extra database query per applicant to fetch academic records. They now fetch all records in a single batched query (in chunks of 500 applicants), so export time no longer grows with one round-trip per row. Export files are byte-for-byte identical in content to v1.1.15.
 
 = 1.1.15 =
 * Academic records now export as a readable summary (e.g. "HSSCE (2025) - Division: 1, Marks: 61%, Board: CBSE, Subjects: Physics, Chemistry") instead of raw JSON, in both CSV and the new Excel export.
@@ -154,6 +157,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.16 =
+Makes CSV/Excel export much faster on sites with many applications (one batched query instead of one per applicant). Export content is unchanged. No database changes.
 
 = 1.1.15 =
 Adds a new Excel export with auto-sized columns, and academic records now export as readable text instead of raw JSON. No database changes.
