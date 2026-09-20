@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.17
+Stable tag: 1.1.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 4. Admin entries list with CSV export.
 
 == Changelog ==
+
+= 1.1.18 =
+* Fixed: form fields had no length limits matching the database, so an over-long entry (e.g. a very long name, phone number, or an academic-record field) either failed the whole submission with a generic "Something went wrong" message, was silently cut off, or — for academic records — was silently lost. Every free-text field now has a maxlength matching its database column, and the server enforces the same limits with a specific message (e.g. "WhatsApp No. is too long (maximum 20 characters)."). Nothing is uploaded or saved until it's fixed. Normal entries are unaffected.
 
 = 1.1.17 =
 * Fixed: an invalid email address on the application form was silently discarded. The application was accepted and saved with a blank email, no confirmation email was ever sent, and the applicant was never told. The form now shows "Please enter a valid email address, or leave the email field blank." and nothing is saved or uploaded until it's fixed. Email remains optional; blank and valid addresses behave exactly as before. This also catches addresses that some browsers accept but WordPress rejects (e.g. "name@localhost").
@@ -160,6 +163,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.18 =
+Form fields now have length limits matching the database, enforced in the browser and on the server, so over-long entries get a clear error instead of a generic failure or silent data loss. No database changes.
 
 = 1.1.17 =
 Applicants who type an invalid email address now get a clear error instead of having it silently dropped (which meant no confirmation email was sent). Email is still optional. No database changes.
