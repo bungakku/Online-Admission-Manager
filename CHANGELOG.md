@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.19] - 2026-09-20
+
+### Fixed
+- Deleting an entry left its academic records behind. The academic records live in `wp_admission_academic_records`, linked to a submission only by `submission_id` (no foreign key or cascade), and the admin "Delete" action removed just the `wp_admission_submissions` row and the uploaded files. Every deleted applicant's education details therefore stayed in the database indefinitely — personal data that was meant to be gone — and, on hosts running a database that resets its auto-increment counter on restart (MySQL 5.7 and older), a later applicant assigned the same ID could inherit them.
+- Added `adm_mgr_delete_entry()`, which deletes the uploaded files, then the submission row, then that submission's academic rows — and only removes the academic rows if the submission row was deleted successfully, so a failed delete can't leave a submission that has lost its records. The admin delete action now calls it. Same nonce and capability checks as before; the "Entry deleted." notice is unchanged.
+- Existing orphaned rows from deletions made in earlier versions are deliberately NOT removed automatically (no silent bulk deletion of data on plugin update); they don't appear in exports or the admin panel, since both are driven from the submissions table.
+- Verified by running the real admin page callback (v1.1.18 and v1.1.19 side by side) against a real MariaDB 10.11 server with the tables created from the plugin's own `CREATE TABLE` statements and real files on disk: v1.1.18 leaves 2 orphaned academic rows after deleting an applicant; v1.1.19 leaves 0. Confirmed other applicants' rows and files are untouched (including interleaved insert order), pre-existing orphans are not touched, a simulated failed submission delete leaves both the submission and its academic rows intact, a submission with no academic records deletes cleanly, a nonexistent ID deletes nothing and shows no success notice, and an invalid nonce deletes nothing (rows or files).
+- No database schema changes; `ADM_MGR_DB_VERSION` unchanged.
+
 ## [1.1.18] - 2026-09-20
 
 ### Fixed

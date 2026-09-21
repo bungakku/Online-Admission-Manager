@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.18
+Stable tag: 1.1.19
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 4. Admin entries list with CSV export.
 
 == Changelog ==
+
+= 1.1.19 =
+* Fixed: deleting an application in the admin panel removed the application and its uploaded files, but left that applicant's academic records behind in the database as orphaned rows. Deleting an entry now removes its academic records too. Applications that have already been deleted in the past may have left such rows behind; they are harmless to exports and are not removed automatically.
 
 = 1.1.18 =
 * Fixed: form fields had no length limits matching the database, so an over-long entry (e.g. a very long name, phone number, or an academic-record field) either failed the whole submission with a generic "Something went wrong" message, was silently cut off, or — for academic records — was silently lost. Every free-text field now has a maxlength matching its database column, and the server enforces the same limits with a specific message (e.g. "WhatsApp No. is too long (maximum 20 characters)."). Nothing is uploaded or saved until it's fixed. Normal entries are unaffected.
@@ -163,6 +166,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.19 =
+Deleting an application now also deletes that applicant's academic records instead of leaving them orphaned in the database. No database changes; existing leftover rows are not touched automatically.
 
 = 1.1.18 =
 Form fields now have length limits matching the database, enforced in the browser and on the server, so over-long entries get a clear error instead of a generic failure or silent data loss. No database changes.

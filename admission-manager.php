@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV/Excel export, and payment QR code.
- * Version:           1.1.18
+ * Version:           1.1.19
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.18');
+define('ADM_MGR_VERSION', '1.1.19');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -1407,8 +1407,7 @@ function adm_mgr_entries_page() {
         $id = absint($_GET['id']);
         $submission = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_main WHERE id = %d", $id));
         if ($submission) {
-            adm_mgr_delete_files($submission);
-            $wpdb->delete($table_main, array('id' => $id));
+            adm_mgr_delete_entry($submission);
             echo '<div class="notice notice-success"><p>' . esc_html__('Entry deleted.', 'admission-mgr') . '</p></div>';
         }
     }
@@ -1978,6 +1977,35 @@ function adm_mgr_delete_files($submission) {
     $paths = array($submission->passport_photo, $submission->payment_proof);
     $paths = array_merge($paths, explode(',', (string) $submission->scanned_documents));
     adm_mgr_delete_uploaded_files($paths);
+}
+
+/**
+ * Delete one submission completely: its uploaded files, its row, and its
+ * academic-record rows. The academic records live in a separate table
+ * linked only by submission_id (no foreign key), so deleting just the
+ * submission row used to leave every one of that applicant's academic
+ * records behind as orphans — personal data that was supposed to be gone,
+ * and, on hosts whose database resets its auto-increment counter on
+ * restart (MySQL 5.7 and older), rows a later applicant could inherit
+ * if they were assigned the same ID. The academic rows are only removed
+ * once the submission row itself was deleted successfully, so a failed
+ * delete never leaves a submission that has lost its records.
+ *
+ * @return bool True if the submission row was deleted.
+ */
+function adm_mgr_delete_entry($submission) {
+    global $wpdb;
+    $id = (int) $submission->id;
+
+    adm_mgr_delete_files($submission);
+
+    $deleted = $wpdb->delete($wpdb->prefix . 'admission_submissions', array('id' => $id));
+    if (false === $deleted) {
+        return false;
+    }
+
+    $wpdb->delete($wpdb->prefix . 'admission_academic_records', array('submission_id' => $id));
+    return true;
 }
 
 /**
