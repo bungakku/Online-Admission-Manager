@@ -299,7 +299,27 @@ jQuery(document).ready(function ($) {
 
     // Show a confirmation message if redirected back with ?submitted=success.
     if (window.location.search.indexOf('submitted=success') > -1) {
-        $('<div class="admission-message success">Application submitted successfully! You can now close this page.</div>')
+        $('<div class="admission-message success" role="status">Application submitted successfully! You can now close this page.</div>')
             .insertBefore('#admissionForm');
+    }
+
+    // Bring the result message (a server-side error, or the success message
+    // above) into view and hand it keyboard/screen-reader focus. After a
+    // submit the page reloads at the top, and the form can sit well below the
+    // site header, so without this the applicant may not see it at all. The
+    // "admissions closed" notice is a standing status, not a result, so it is
+    // left alone.
+    var notice = $('.admission-form-wrapper .admission-message').not('.admission-status-message').get(0);
+    if (notice) {
+        var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        notice.setAttribute('tabindex', '-1');
+        if (typeof notice.scrollIntoView === 'function') {
+            notice.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+        }
+        try {
+            notice.focus({ preventScroll: true });
+        } catch (err) {
+            notice.focus();
+        }
     }
 });

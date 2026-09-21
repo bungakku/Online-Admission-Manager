@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV/Excel export, and payment QR code.
- * Version:           1.1.20
+ * Version:           1.1.21
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.20');
+define('ADM_MGR_VERSION', '1.1.21');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -2062,6 +2062,8 @@ function adm_mgr_render_form() {
             <div class="admission-message error admission-status-message"><?php echo esc_html($status_message); ?></div>
         <?php endif; ?>
 
+        <?php adm_mgr_render_messages(); ?>
+
         <form id="admissionForm" method="post" enctype="multipart/form-data" <?php echo $is_open ? '' : 'onsubmit="return false;"'; ?>>
             <?php wp_nonce_field('adm_submit_nonce', 'adm_nonce_field'); ?>
             <p class="adm-mgr-honeypot" aria-hidden="true">
@@ -2760,7 +2762,7 @@ function adm_mgr_check_contact_numbers($post) {
         if (!adm_mgr_is_valid_phone($value)) {
             return sprintf(
                 /* translators: %s: form field label, e.g. "WhatsApp No." */
-                __('%s is not a valid phone number. Please use 7 to 15 digits; spaces, +, - and brackets are allowed.', 'admission-mgr'),
+                __('%s is not a valid phone number. Please use 7 to 15 digits; spaces, hyphens, brackets and a leading + are allowed.', 'admission-mgr'),
                 $limits[$key]['label']
             );
         }
@@ -2841,7 +2843,49 @@ function adm_mgr_upload_file($file, $target_dir, $target_url, $allowed_ext, $all
  * Queue a one-time message to render in the footer (used for form validation feedback).
  */
 function adm_mgr_output_message($msg, $type) {
-    add_action('wp_footer', function () use ($msg, $type) {
-        echo '<div class="admission-message ' . esc_attr($type) . '">' . esc_html($msg) . '</div>';
-    });
+    global $adm_mgr_messages;
+    if (!is_array($adm_mgr_messages)) {
+        $adm_mgr_messages = array();
+    }
+    $adm_mgr_messages[] = array('msg' => $msg, 'type' => $type);
+
+    // Safety net only: normally the form prints these itself, right above
+    // the fields (see adm_mgr_render_messages()). If this request never
+    // renders the form, the message is still shown rather than lost.
+    if (!has_action('wp_footer', 'adm_mgr_flush_messages')) {
+        add_action('wp_footer', 'adm_mgr_flush_messages');
+    }
+}
+
+/**
+ * Print any queued form messages. Called from inside the form (above the
+ * fields), which is where the applicant is looking. Previously every message
+ * was printed from the wp_footer hook — i.e. at the very end of the page,
+ * below the site's own footer — while the form above it reloaded blank, so
+ * a rejected submission looked like nothing had happened.
+ *
+ * Errors use role="alert" (announced immediately by screen readers) and
+ * everything else role="status". Messages are not cleared after printing, so
+ * an unrelated plugin that happens to run the shortcode once earlier in the
+ * request (for an SEO description, say) can't swallow the message before the
+ * real render; the footer fallback only fires if no render happened at all.
+ */
+function adm_mgr_render_messages() {
+    global $adm_mgr_messages, $adm_mgr_messages_rendered;
+    $adm_mgr_messages_rendered = true;
+    if (empty($adm_mgr_messages) || !is_array($adm_mgr_messages)) {
+        return;
+    }
+    foreach ($adm_mgr_messages as $item) {
+        $role = ('error' === $item['type']) ? 'alert' : 'status';
+        echo '<div class="admission-message ' . esc_attr($item['type']) . '" role="' . esc_attr($role) . '">' . esc_html($item['msg']) . '</div>';
+    }
+}
+
+function adm_mgr_flush_messages() {
+    global $adm_mgr_messages_rendered;
+    if (!empty($adm_mgr_messages_rendered)) {
+        return;
+    }
+    adm_mgr_render_messages();
 }

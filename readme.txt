@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.20
+Stable tag: 1.1.21
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,10 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 4. Admin entries list with CSV export.
 
 == Changelog ==
+
+= 1.1.21 =
+* Fixed: when the form rejected a submission (invalid phone number, over-long field, bad email, and so on), the error message was printed at the very bottom of the page, below the site footer, while the form above reloaded empty — so it looked as though nothing had happened and no reason was given. The message now appears directly above the form, the page scrolls to it, and it is announced to screen readers (role="alert" for errors, role="status" for confirmations). The success confirmation after submitting is scrolled into view and announced the same way.
+* The phone-number error message wording was tidied slightly ("spaces, hyphens, brackets and a leading + are allowed").
 
 = 1.1.20 =
 * Fixed: contact-number fields (WhatsApp, Alternate, and both parents' contacts) accepted anything at all — letters, a typo'd digit count, several numbers crammed into one box — so an applicant could be saved with a number nobody could ever call. The form now checks that each number looks like a phone number: 7 to 15 digits, with spaces, hyphens, brackets and a leading + allowed (so "+91 98765 43210", "(0361) 234 5678" and foreign numbers all pass), and shows a specific message otherwise. WhatsApp is still required; the other numbers are still optional. Numbers pasted from a contact card or WhatsApp (which often contain invisible characters) are accepted, and numbers are saved exactly as typed.
@@ -169,6 +173,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.21 =
+Form error messages now appear directly above the form (and are scrolled to and announced by screen readers) instead of at the very bottom of the page, where they were easy to miss. Clear any page cache after updating. No database changes.
 
 = 1.1.20 =
 Contact numbers are now checked to look like real phone numbers (7-15 digits; spaces, hyphens, brackets and a leading + allowed) instead of accepting anything. Numbers are saved exactly as typed. No database changes.

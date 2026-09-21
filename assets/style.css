@@ -328,6 +328,15 @@
     text-align: center;
 }
 
+.admission-form-wrapper .admission-message {
+    scroll-margin-top: 80px;
+}
+
+.admission-form-wrapper .admission-message:focus {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
 .admission-message.success {
     background: #d4edda;
     color: #155724;
