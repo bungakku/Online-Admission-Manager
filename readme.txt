@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.21
+Stable tag: 1.1.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 4. Admin entries list with CSV export.
 
 == Changelog ==
+
+= 1.1.22 =
+* Fixed: when a submission was rejected (bad phone number, over-long field, expired security check, wrong file type, and so on) the form reloaded completely empty, so a single typo meant retyping the whole application. The form now comes back filled in with everything the applicant entered — including every academic-record row — so they only fix the problem and submit again. For security the Aadhar number is not filled back in, and browsers can't refill file uploads, so a short note asks the applicant to re-enter their Aadhar number and choose their photo and documents again.
 
 = 1.1.21 =
 * Fixed: when the form rejected a submission (invalid phone number, over-long field, bad email, and so on), the error message was printed at the very bottom of the page, below the site footer, while the form above reloaded empty — so it looked as though nothing had happened and no reason was given. The message now appears directly above the form, the page scrolls to it, and it is announced to screen readers (role="alert" for errors, role="status" for confirmations). The success confirmation after submitting is scrolled into view and announced the same way.
@@ -173,6 +176,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.22 =
+A rejected submission now brings the form back filled in (except the Aadhar number and file uploads) instead of empty. Clear any page cache after updating. No database changes.
 
 = 1.1.21 =
 Form error messages now appear directly above the form (and are scrolled to and announced by screen readers) instead of at the very bottom of the page, where they were easy to miss. Clear any page cache after updating. No database changes.

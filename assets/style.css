@@ -343,6 +343,12 @@
     border: 1px solid #c3e6cb;
 }
 
+.admission-message.info {
+    background: #e7f1fb;
+    color: #0c4a7a;
+    border: 1px solid #b6d4f0;
+}
+
 .admission-message.error {
     background: #f8d7da;
     color: #721c24;

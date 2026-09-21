@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV/Excel export, and payment QR code.
- * Version:           1.1.21
+ * Version:           1.1.22
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.21');
+define('ADM_MGR_VERSION', '1.1.22');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -2074,7 +2074,7 @@ function adm_mgr_render_form() {
                 <legend><?php esc_html_e('Personal Information (IN BLOCK LETTERS)', 'admission-mgr'); ?></legend>
 
                 <div class="adm-row adm-row-name-photo">
-                    <label class="adm-field-grow"><?php esc_html_e('Full Name:', 'admission-mgr'); ?> <input type="text" name="applicant_name" data-field="applicant_name"<?php echo adm_mgr_maxlength_attr('applicant_name'); ?> required class="adm-uppercase" <?php disabled(!$is_open); ?>></label>
+                    <label class="adm-field-grow"><?php esc_html_e('Full Name:', 'admission-mgr'); ?> <input type="text" name="applicant_name" data-field="applicant_name"<?php echo adm_mgr_maxlength_attr('applicant_name'); ?> value="<?php echo esc_attr(adm_mgr_field_value('applicant_name')); ?>" required class="adm-uppercase" <?php disabled(!$is_open); ?>></label>
                     <div class="adm-photo-preview-slot">
                         <span class="adm-photo-preview-label"><?php esc_html_e('Photo Preview', 'admission-mgr'); ?></span>
                         <div class="adm-photo-preview-box" id="admPhotoPreviewBox">
@@ -2083,77 +2083,80 @@ function adm_mgr_render_form() {
                     </div>
                 </div>
 
-                <p><label><?php esc_html_e('Email (for confirmation):', 'admission-mgr'); ?> <input type="email" name="email" data-field="email"<?php echo adm_mgr_maxlength_attr('email'); ?> <?php disabled(!$is_open); ?>></label><br><small><?php esc_html_e('Optional but recommended.', 'admission-mgr'); ?></small></p>
+                <p><label><?php esc_html_e('Email (for confirmation):', 'admission-mgr'); ?> <input type="email" name="email" data-field="email"<?php echo adm_mgr_maxlength_attr('email'); ?> value="<?php echo esc_attr(adm_mgr_field_value('email')); ?>" <?php disabled(!$is_open); ?>></label><br><small><?php esc_html_e('Optional but recommended.', 'admission-mgr'); ?></small></p>
 
                 <div class="adm-row">
-                    <label><?php esc_html_e('WhatsApp No.:', 'admission-mgr'); ?> <input type="tel" name="contact1" data-field="contact1"<?php echo adm_mgr_maxlength_attr('contact1'); ?> required <?php disabled(!$is_open); ?>></label>
-                    <label><?php esc_html_e('Alternate No.:', 'admission-mgr'); ?> <input type="tel" name="contact2" data-field="contact2"<?php echo adm_mgr_maxlength_attr('contact2'); ?> <?php disabled(!$is_open); ?>></label>
+                    <label><?php esc_html_e('WhatsApp No.:', 'admission-mgr'); ?> <input type="tel" name="contact1" data-field="contact1"<?php echo adm_mgr_maxlength_attr('contact1'); ?> value="<?php echo esc_attr(adm_mgr_field_value('contact1')); ?>" required <?php disabled(!$is_open); ?>></label>
+                    <label><?php esc_html_e('Alternate No.:', 'admission-mgr'); ?> <input type="tel" name="contact2" data-field="contact2"<?php echo adm_mgr_maxlength_attr('contact2'); ?> value="<?php echo esc_attr(adm_mgr_field_value('contact2')); ?>" <?php disabled(!$is_open); ?>></label>
                 </div>
 
                 <div class="adm-row">
-                    <label><?php esc_html_e("Father's Name:", 'admission-mgr'); ?> <input type="text" name="father_name" data-field="father_name"<?php echo adm_mgr_maxlength_attr('father_name'); ?> required <?php disabled(!$is_open); ?>></label>
-                    <label><?php esc_html_e("Father's Contact 1:", 'admission-mgr'); ?> <input type="tel" name="father_contact1" data-field="father_contact1"<?php echo adm_mgr_maxlength_attr('father_contact1'); ?> <?php disabled(!$is_open); ?>></label>
-                    <label><?php esc_html_e("Father's Contact 2:", 'admission-mgr'); ?> <input type="tel" name="father_contact2" data-field="father_contact2"<?php echo adm_mgr_maxlength_attr('father_contact2'); ?> <?php disabled(!$is_open); ?>></label>
+                    <label><?php esc_html_e("Father's Name:", 'admission-mgr'); ?> <input type="text" name="father_name" data-field="father_name"<?php echo adm_mgr_maxlength_attr('father_name'); ?> value="<?php echo esc_attr(adm_mgr_field_value('father_name')); ?>" required <?php disabled(!$is_open); ?>></label>
+                    <label><?php esc_html_e("Father's Contact 1:", 'admission-mgr'); ?> <input type="tel" name="father_contact1" data-field="father_contact1"<?php echo adm_mgr_maxlength_attr('father_contact1'); ?> value="<?php echo esc_attr(adm_mgr_field_value('father_contact1')); ?>" <?php disabled(!$is_open); ?>></label>
+                    <label><?php esc_html_e("Father's Contact 2:", 'admission-mgr'); ?> <input type="tel" name="father_contact2" data-field="father_contact2"<?php echo adm_mgr_maxlength_attr('father_contact2'); ?> value="<?php echo esc_attr(adm_mgr_field_value('father_contact2')); ?>" <?php disabled(!$is_open); ?>></label>
                 </div>
 
                 <div class="adm-row">
-                    <label><?php esc_html_e("Mother's Name:", 'admission-mgr'); ?> <input type="text" name="mother_name" data-field="mother_name"<?php echo adm_mgr_maxlength_attr('mother_name'); ?> required <?php disabled(!$is_open); ?>></label>
-                    <label><?php esc_html_e("Mother's Contact 1:", 'admission-mgr'); ?> <input type="tel" name="mother_contact1" data-field="mother_contact1"<?php echo adm_mgr_maxlength_attr('mother_contact1'); ?> <?php disabled(!$is_open); ?>></label>
-                    <label><?php esc_html_e("Mother's Contact 2:", 'admission-mgr'); ?> <input type="tel" name="mother_contact2" data-field="mother_contact2"<?php echo adm_mgr_maxlength_attr('mother_contact2'); ?> <?php disabled(!$is_open); ?>></label>
+                    <label><?php esc_html_e("Mother's Name:", 'admission-mgr'); ?> <input type="text" name="mother_name" data-field="mother_name"<?php echo adm_mgr_maxlength_attr('mother_name'); ?> value="<?php echo esc_attr(adm_mgr_field_value('mother_name')); ?>" required <?php disabled(!$is_open); ?>></label>
+                    <label><?php esc_html_e("Mother's Contact 1:", 'admission-mgr'); ?> <input type="tel" name="mother_contact1" data-field="mother_contact1"<?php echo adm_mgr_maxlength_attr('mother_contact1'); ?> value="<?php echo esc_attr(adm_mgr_field_value('mother_contact1')); ?>" <?php disabled(!$is_open); ?>></label>
+                    <label><?php esc_html_e("Mother's Contact 2:", 'admission-mgr'); ?> <input type="tel" name="mother_contact2" data-field="mother_contact2"<?php echo adm_mgr_maxlength_attr('mother_contact2'); ?> value="<?php echo esc_attr(adm_mgr_field_value('mother_contact2')); ?>" <?php disabled(!$is_open); ?>></label>
                 </div>
 
-                <p class="adm-field-full"><label><?php esc_html_e('Permanent Address (Block Letters):', 'admission-mgr'); ?> <textarea name="permanent_address" data-field="permanent_address" rows="3" class="adm-uppercase" required <?php disabled(!$is_open); ?>></textarea></label></p>
+                <p class="adm-field-full"><label><?php esc_html_e('Permanent Address (Block Letters):', 'admission-mgr'); ?> <textarea name="permanent_address" data-field="permanent_address" rows="3" class="adm-uppercase" required <?php disabled(!$is_open); ?>><?php echo esc_textarea(adm_mgr_field_value('permanent_address')); ?></textarea></label></p>
 
                 <div class="adm-row">
-                    <label class="adm-field-grow"><?php esc_html_e('Present Address:', 'admission-mgr'); ?> <textarea name="present_address" data-field="present_address" rows="2" required <?php disabled(!$is_open); ?>></textarea></label>
-                    <label><?php esc_html_e('Pin Code:', 'admission-mgr'); ?> <input type="text" name="present_pin_code" data-field="present_pin_code"<?php echo adm_mgr_maxlength_attr('present_pin_code'); ?> class="adm-input-narrow" <?php disabled(!$is_open); ?>></label>
+                    <label class="adm-field-grow"><?php esc_html_e('Present Address:', 'admission-mgr'); ?> <textarea name="present_address" data-field="present_address" rows="2" required <?php disabled(!$is_open); ?>><?php echo esc_textarea(adm_mgr_field_value('present_address')); ?></textarea></label>
+                    <label><?php esc_html_e('Pin Code:', 'admission-mgr'); ?> <input type="text" name="present_pin_code" data-field="present_pin_code"<?php echo adm_mgr_maxlength_attr('present_pin_code'); ?> value="<?php echo esc_attr(adm_mgr_field_value('present_pin_code')); ?>" class="adm-input-narrow" <?php disabled(!$is_open); ?>></label>
                 </div>
 
                 <div class="adm-row">
-                    <label><?php esc_html_e('Date of Birth:', 'admission-mgr'); ?> <input type="date" name="dob" data-field="dob" required <?php disabled(!$is_open); ?>></label>
+                    <label><?php esc_html_e('Date of Birth:', 'admission-mgr'); ?> <input type="date" name="dob" data-field="dob" value="<?php echo esc_attr(adm_mgr_field_value('dob')); ?>" required <?php disabled(!$is_open); ?>></label>
                     <label><?php esc_html_e('Sex:', 'admission-mgr'); ?>
                         <select name="sex" data-field="sex" required <?php disabled(!$is_open); ?>>
                             <option value=""><?php esc_html_e('Select', 'admission-mgr'); ?></option>
-                            <option><?php esc_html_e('Male', 'admission-mgr'); ?></option>
-                            <option><?php esc_html_e('Female', 'admission-mgr'); ?></option>
-                            <option><?php esc_html_e('Other', 'admission-mgr'); ?></option>
+                            <option <?php selected(adm_mgr_field_value('sex'), 'Male'); ?>><?php esc_html_e('Male', 'admission-mgr'); ?></option>
+                            <option <?php selected(adm_mgr_field_value('sex'), 'Female'); ?>><?php esc_html_e('Female', 'admission-mgr'); ?></option>
+                            <option <?php selected(adm_mgr_field_value('sex'), 'Other'); ?>><?php esc_html_e('Other', 'admission-mgr'); ?></option>
                         </select>
                     </label>
-                    <label><?php esc_html_e('Blood Group:', 'admission-mgr'); ?> <input type="text" name="blood_group" data-field="blood_group"<?php echo adm_mgr_maxlength_attr('blood_group'); ?> class="adm-input-narrow" placeholder="A+ / B+ / O+" <?php disabled(!$is_open); ?>></label>
+                    <label><?php esc_html_e('Blood Group:', 'admission-mgr'); ?> <input type="text" name="blood_group" data-field="blood_group"<?php echo adm_mgr_maxlength_attr('blood_group'); ?> value="<?php echo esc_attr(adm_mgr_field_value('blood_group')); ?>" class="adm-input-narrow" placeholder="A+ / B+ / O+" <?php disabled(!$is_open); ?>></label>
                 </div>
 
                 <div class="adm-row">
-                    <label><?php esc_html_e('Nationality:', 'admission-mgr'); ?> <input type="text" name="nationality" data-field="nationality"<?php echo adm_mgr_maxlength_attr('nationality'); ?> class="adm-input-narrow" value="Indian" required <?php disabled(!$is_open); ?>></label>
+                    <label><?php esc_html_e('Nationality:', 'admission-mgr'); ?> <input type="text" name="nationality" data-field="nationality"<?php echo adm_mgr_maxlength_attr('nationality'); ?> class="adm-input-narrow" value="<?php echo esc_attr(adm_mgr_field_value('nationality', 'Indian')); ?>" required <?php disabled(!$is_open); ?>></label>
                     <label><?php esc_html_e('Aadhar Number:', 'admission-mgr'); ?> <input type="text" name="aadhar_number" data-field="aadhar_number" data-sensitive="1" required pattern="[0-9]{12}" maxlength="12" title="<?php esc_attr_e('12-digit Aadhar', 'admission-mgr'); ?>" <?php disabled(!$is_open); ?>></label>
-                    <label><?php esc_html_e('Country (if foreign national):', 'admission-mgr'); ?> <input type="text" name="country" data-field="country"<?php echo adm_mgr_maxlength_attr('country'); ?> class="adm-input-narrow" placeholder="India" <?php disabled(!$is_open); ?>></label>
+                    <label><?php esc_html_e('Country (if foreign national):', 'admission-mgr'); ?> <input type="text" name="country" data-field="country"<?php echo adm_mgr_maxlength_attr('country'); ?> value="<?php echo esc_attr(adm_mgr_field_value('country')); ?>" class="adm-input-narrow" placeholder="India" <?php disabled(!$is_open); ?>></label>
                 </div>
 
                 <div class="adm-row">
-                    <label><?php esc_html_e('State of Domicile:', 'admission-mgr'); ?> <input type="text" name="state_domicile" data-field="state_domicile"<?php echo adm_mgr_maxlength_attr('state_domicile'); ?> required <?php disabled(!$is_open); ?>></label>
+                    <label><?php esc_html_e('State of Domicile:', 'admission-mgr'); ?> <input type="text" name="state_domicile" data-field="state_domicile"<?php echo adm_mgr_maxlength_attr('state_domicile'); ?> value="<?php echo esc_attr(adm_mgr_field_value('state_domicile')); ?>" required <?php disabled(!$is_open); ?>></label>
                     <label><?php esc_html_e('Category:', 'admission-mgr'); ?>
                         <select name="category" data-field="category" required <?php disabled(!$is_open); ?>>
                             <option value=""><?php esc_html_e('Select', 'admission-mgr'); ?></option>
-                            <option>Gen</option><option>ST</option><option>SC</option><option>OBC</option>
+                            <option <?php selected(adm_mgr_field_value('category'), 'Gen'); ?>>Gen</option><option <?php selected(adm_mgr_field_value('category'), 'ST'); ?>>ST</option><option <?php selected(adm_mgr_field_value('category'), 'SC'); ?>>SC</option><option <?php selected(adm_mgr_field_value('category'), 'OBC'); ?>>OBC</option>
                         </select>
                     </label>
                 </div>
 
-                <p><label><?php esc_html_e('Last School/College Attended:', 'admission-mgr'); ?> <input type="text" name="last_school" data-field="last_school"<?php echo adm_mgr_maxlength_attr('last_school'); ?> required <?php disabled(!$is_open); ?>></label></p>
-                <p><label><?php esc_html_e('Course Seeking Admission:', 'admission-mgr'); ?> <input type="text" name="course_seeking" data-field="course_seeking"<?php echo adm_mgr_maxlength_attr('course_seeking'); ?> required <?php disabled(!$is_open); ?>></label></p>
+                <p><label><?php esc_html_e('Last School/College Attended:', 'admission-mgr'); ?> <input type="text" name="last_school" data-field="last_school"<?php echo adm_mgr_maxlength_attr('last_school'); ?> value="<?php echo esc_attr(adm_mgr_field_value('last_school')); ?>" required <?php disabled(!$is_open); ?>></label></p>
+                <p><label><?php esc_html_e('Course Seeking Admission:', 'admission-mgr'); ?> <input type="text" name="course_seeking" data-field="course_seeking"<?php echo adm_mgr_maxlength_attr('course_seeking'); ?> value="<?php echo esc_attr(adm_mgr_field_value('course_seeking')); ?>" required <?php disabled(!$is_open); ?>></label></p>
             </fieldset>
 
             <fieldset>
                 <legend><?php esc_html_e('Academic Record (Add all qualifications)', 'admission-mgr'); ?></legend>
                 <div id="academic-rows">
+                    <?php $adm_mgr_row_total = adm_mgr_academic_row_count(); ?>
+                    <?php for ($adm_mgr_row = 0; $adm_mgr_row < $adm_mgr_row_total; $adm_mgr_row++) : ?>
                     <div class="academic-row">
-                        <input type="text" name="academic_exam_name[]"<?php echo adm_mgr_maxlength_attr('academic_exam_name'); ?> placeholder="<?php esc_attr_e('Exam Name', 'admission-mgr'); ?>" required <?php disabled(!$is_open); ?>>
-                        <input type="text" name="academic_year[]"<?php echo adm_mgr_maxlength_attr('academic_year'); ?> placeholder="<?php esc_attr_e('Year', 'admission-mgr'); ?>" required <?php disabled(!$is_open); ?>>
-                        <input type="text" name="academic_class_div[]"<?php echo adm_mgr_maxlength_attr('academic_class_div'); ?> placeholder="<?php esc_attr_e('Class/Division', 'admission-mgr'); ?>" <?php disabled(!$is_open); ?>>
-                        <input type="text" name="academic_percent[]"<?php echo adm_mgr_maxlength_attr('academic_percent'); ?> placeholder="<?php esc_attr_e('% Marks', 'admission-mgr'); ?>" <?php disabled(!$is_open); ?>>
-                        <input type="text" name="academic_board[]"<?php echo adm_mgr_maxlength_attr('academic_board'); ?> placeholder="<?php esc_attr_e('Board/Univ', 'admission-mgr'); ?>" <?php disabled(!$is_open); ?>>
-                        <textarea name="academic_subjects[]" placeholder="<?php esc_attr_e('Subjects', 'admission-mgr'); ?>" <?php disabled(!$is_open); ?>></textarea>
+                        <input type="text" name="academic_exam_name[]"<?php echo adm_mgr_maxlength_attr('academic_exam_name'); ?> value="<?php echo esc_attr(adm_mgr_academic_value('academic_exam_name', $adm_mgr_row)); ?>" placeholder="<?php esc_attr_e('Exam Name', 'admission-mgr'); ?>" required <?php disabled(!$is_open); ?>>
+                        <input type="text" name="academic_year[]"<?php echo adm_mgr_maxlength_attr('academic_year'); ?> value="<?php echo esc_attr(adm_mgr_academic_value('academic_year', $adm_mgr_row)); ?>" placeholder="<?php esc_attr_e('Year', 'admission-mgr'); ?>" required <?php disabled(!$is_open); ?>>
+                        <input type="text" name="academic_class_div[]"<?php echo adm_mgr_maxlength_attr('academic_class_div'); ?> value="<?php echo esc_attr(adm_mgr_academic_value('academic_class_div', $adm_mgr_row)); ?>" placeholder="<?php esc_attr_e('Class/Division', 'admission-mgr'); ?>" <?php disabled(!$is_open); ?>>
+                        <input type="text" name="academic_percent[]"<?php echo adm_mgr_maxlength_attr('academic_percent'); ?> value="<?php echo esc_attr(adm_mgr_academic_value('academic_percent', $adm_mgr_row)); ?>" placeholder="<?php esc_attr_e('% Marks', 'admission-mgr'); ?>" <?php disabled(!$is_open); ?>>
+                        <input type="text" name="academic_board[]"<?php echo adm_mgr_maxlength_attr('academic_board'); ?> value="<?php echo esc_attr(adm_mgr_academic_value('academic_board', $adm_mgr_row)); ?>" placeholder="<?php esc_attr_e('Board/Univ', 'admission-mgr'); ?>" <?php disabled(!$is_open); ?>>
+                        <textarea name="academic_subjects[]" placeholder="<?php esc_attr_e('Subjects', 'admission-mgr'); ?>" <?php disabled(!$is_open); ?>><?php echo esc_textarea(adm_mgr_academic_value('academic_subjects', $adm_mgr_row)); ?></textarea>
                         <button type="button" class="remove-row" <?php disabled(!$is_open); ?>><?php esc_html_e('Remove', 'admission-mgr'); ?></button>
                     </div>
+                    <?php endfor; ?>
                 </div>
                 <button type="button" id="add-academic-row" <?php disabled(!$is_open); ?>>+ <?php esc_html_e('Add Another Qualification', 'admission-mgr'); ?></button>
             </fieldset>
@@ -2880,6 +2883,104 @@ function adm_mgr_render_messages() {
         $role = ('error' === $item['type']) ? 'alert' : 'status';
         echo '<div class="admission-message ' . esc_attr($item['type']) . '" role="' . esc_attr($role) . '">' . esc_html($item['msg']) . '</div>';
     }
+
+    // The fields below have been refilled from the rejected submission, but
+    // a browser can't refill file inputs and the Aadhar number is
+    // deliberately not echoed back, so tell the applicant what's left to do.
+    if (adm_mgr_get_repopulate_values()) {
+        echo '<div class="admission-message info" role="status">' . esc_html__('Your entries have been kept. For your security, please re-enter your Aadhar number and choose your photo and documents again.', 'admission-mgr') . '</div>';
+    }
+}
+
+/**
+ * The applicant's own entries from a rejected submission, so the form can be
+ * shown again filled in instead of empty (a single typo used to mean
+ * retyping the whole application). Returns an empty array — meaning "show a
+ * normal blank form" — unless this request is a form submission that was
+ * rejected with an error message.
+ *
+ * Only a fixed whitelist of fields is returned, every value forced to a
+ * string (crafted array values become empty), and the academic rows capped
+ * at 50. Deliberately NOT returned: the Aadhar number (sensitive; the
+ * applicant re-enters it), the honeypot, the nonce, and files (browsers
+ * can't refill file inputs anyway). Callers must escape on output.
+ */
+function adm_mgr_get_repopulate_values() {
+    global $adm_mgr_messages;
+    if (empty($_POST['submit_admission']) || empty($adm_mgr_messages) || !is_array($adm_mgr_messages)) {
+        return array();
+    }
+    $has_error = false;
+    foreach ($adm_mgr_messages as $item) {
+        if ('error' === $item['type']) {
+            $has_error = true;
+            break;
+        }
+    }
+    if (!$has_error) {
+        return array(); // e.g. the honeypot's fake "success" — never echo a bot's input.
+    }
+
+    $post   = wp_unslash($_POST);
+    $values = array();
+    $scalar = array(
+        'applicant_name', 'email', 'contact1', 'contact2',
+        'father_name', 'father_contact1', 'father_contact2',
+        'mother_name', 'mother_contact1', 'mother_contact2',
+        'permanent_address', 'present_address', 'present_pin_code',
+        'dob', 'sex', 'blood_group', 'nationality', 'country',
+        'state_domicile', 'category', 'last_school', 'course_seeking',
+    );
+    foreach ($scalar as $key) {
+        $values[$key] = (isset($post[$key]) && is_string($post[$key])) ? $post[$key] : '';
+    }
+    $rows = array('academic_exam_name', 'academic_year', 'academic_class_div', 'academic_percent', 'academic_board', 'academic_subjects');
+    foreach ($rows as $key) {
+        $values[$key] = array();
+        if (isset($post[$key]) && is_array($post[$key])) {
+            foreach (array_slice(array_values($post[$key]), 0, 50) as $cell) {
+                $values[$key][] = is_string($cell) ? $cell : '';
+            }
+        }
+    }
+    return $values;
+}
+
+/**
+ * Value to show in a form field: the applicant's rejected entry if the form
+ * is being redisplayed after an error, otherwise $default. Escape on output.
+ */
+function adm_mgr_field_value($key, $default = '') {
+    $values = adm_mgr_get_repopulate_values();
+    if (!$values) {
+        return $default;
+    }
+    return isset($values[$key]) ? $values[$key] : '';
+}
+
+/**
+ * Number of academic-record rows to render: as many as were submitted (so a
+ * rejected application keeps all its qualifications), otherwise one.
+ */
+function adm_mgr_academic_row_count() {
+    $values = adm_mgr_get_repopulate_values();
+    if (!$values) {
+        return 1;
+    }
+    $count = 1;
+    foreach (array('academic_exam_name', 'academic_year', 'academic_class_div', 'academic_percent', 'academic_board', 'academic_subjects') as $key) {
+        $count = max($count, count($values[$key]));
+    }
+    return $count;
+}
+
+/**
+ * Value of one cell of one academic row, when redisplaying a rejected
+ * submission; empty otherwise. Escape on output.
+ */
+function adm_mgr_academic_value($key, $row) {
+    $values = adm_mgr_get_repopulate_values();
+    return isset($values[$key][$row]) ? $values[$key][$row] : '';
 }
 
 function adm_mgr_flush_messages() {
