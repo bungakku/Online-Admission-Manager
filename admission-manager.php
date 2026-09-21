@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV/Excel export, and payment QR code.
- * Version:           1.1.19
+ * Version:           1.1.20
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.19');
+define('ADM_MGR_VERSION', '1.1.20');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -2363,6 +2363,14 @@ function adm_mgr_handle_submission() {
         return;
     }
 
+    // Contact numbers must look like phone numbers. Also checked before any
+    // file is written.
+    $phone_error = adm_mgr_check_contact_numbers(wp_unslash($_POST));
+    if ('' !== $phone_error) {
+        adm_mgr_output_message($phone_error, 'error');
+        return;
+    }
+
     // File upload handling
     $upload_dir         = wp_upload_dir();
     $plugin_upload_dir  = $upload_dir['basedir'] . '/' . ADM_MGR_UPLOAD_DIR;
@@ -2700,6 +2708,63 @@ function adm_mgr_check_field_lengths($post) {
         }
     }
 
+    return '';
+}
+
+/**
+ * Does this string look like a phone number? Deliberately permissive, since
+ * applicants include foreign nationals and write numbers in many styles:
+ * digits with optional spaces, hyphens and brackets, and an optional leading
+ * "+" (also accepted inside a leading bracket, as in "(+91) 98765 43210"),
+ * containing 7 to 15 digits (15 is the international E.164 maximum, so
+ * "+91 98765 43210", "0361 234 5678" and "0091 9876543210" all pass).
+ * Anything with letters, a "+" in the middle, or several numbers packed into
+ * one field ("98765 43210 / 98765 43211") is rejected. Non-breaking spaces
+ * and invisible direction marks — which phone/WhatsApp copy-paste commonly
+ * adds — are treated as ordinary spaces for the check, so a number pasted
+ * from a contact card isn't rejected for characters the applicant can't see.
+ * Only ASCII digits count as digits.
+ */
+function adm_mgr_is_valid_phone($value) {
+    $normalized = preg_replace('/[\p{Zs}\p{Cf}]+/u', ' ', (string) $value);
+    if (null === $normalized) {
+        return false; // Invalid UTF-8.
+    }
+    $normalized = trim($normalized);
+    if (!preg_match('/^[ (]*\+?[0-9 ()\-]+$/', $normalized)) {
+        return false;
+    }
+    $digit_count = preg_match_all('/[0-9]/', $normalized);
+    return $digit_count >= 7 && $digit_count <= 15;
+}
+
+/**
+ * Server-side format check for the six contact-number fields. WhatsApp No.
+ * is required, so a blank/whitespace-only value is rejected there; the
+ * other five are optional, so blank is fine. Values are checked as they
+ * will be stored (after sanitize_text_field()), and stored unchanged —
+ * this only accepts or rejects, it never reformats what the applicant
+ * typed. Takes the unslashed POST array; returns an error message for the
+ * first offending field, or '' if all are fine.
+ */
+function adm_mgr_check_contact_numbers($post) {
+    $limits   = adm_mgr_get_field_limits(); // Reused for the field labels.
+    $required = array('contact1');
+    $fields   = array('contact1', 'contact2', 'father_contact1', 'father_contact2', 'mother_contact1', 'mother_contact2');
+
+    foreach ($fields as $key) {
+        $value = (isset($post[$key]) && is_string($post[$key])) ? sanitize_text_field($post[$key]) : '';
+        if ('' === $value && !in_array($key, $required, true)) {
+            continue;
+        }
+        if (!adm_mgr_is_valid_phone($value)) {
+            return sprintf(
+                /* translators: %s: form field label, e.g. "WhatsApp No." */
+                __('%s is not a valid phone number. Please use 7 to 15 digits; spaces, +, - and brackets are allowed.', 'admission-mgr'),
+                $limits[$key]['label']
+            );
+        }
+    }
     return '';
 }
 

@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.19
+Stable tag: 1.1.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 4. Admin entries list with CSV export.
 
 == Changelog ==
+
+= 1.1.20 =
+* Fixed: contact-number fields (WhatsApp, Alternate, and both parents' contacts) accepted anything at all — letters, a typo'd digit count, several numbers crammed into one box — so an applicant could be saved with a number nobody could ever call. The form now checks that each number looks like a phone number: 7 to 15 digits, with spaces, hyphens, brackets and a leading + allowed (so "+91 98765 43210", "(0361) 234 5678" and foreign numbers all pass), and shows a specific message otherwise. WhatsApp is still required; the other numbers are still optional. Numbers pasted from a contact card or WhatsApp (which often contain invisible characters) are accepted, and numbers are saved exactly as typed.
 
 = 1.1.19 =
 * Fixed: deleting an application in the admin panel removed the application and its uploaded files, but left that applicant's academic records behind in the database as orphaned rows. Deleting an entry now removes its academic records too. Applications that have already been deleted in the past may have left such rows behind; they are harmless to exports and are not removed automatically.
@@ -166,6 +169,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.20 =
+Contact numbers are now checked to look like real phone numbers (7-15 digits; spaces, hyphens, brackets and a leading + allowed) instead of accepting anything. Numbers are saved exactly as typed. No database changes.
 
 = 1.1.19 =
 Deleting an application now also deletes that applicant's academic records instead of leaving them orphaned in the database. No database changes; existing leftover rows are not touched automatically.

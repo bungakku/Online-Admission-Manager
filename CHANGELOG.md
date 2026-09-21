@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.20] - 2026-09-20
+
+### Fixed
+- The six contact-number fields (`contact1` WhatsApp — required; `contact2`, `father_contact1`, `father_contact2`, `mother_contact1`, `mother_contact2` — optional) had no format validation, client- or server-side: only `sanitize_text_field()` and (since v1.1.18) a length limit. Letters, a wrong digit count, or two numbers typed into one field were all saved as-is.
+- Added `adm_mgr_is_valid_phone()` and `adm_mgr_check_contact_numbers()`, called in `adm_mgr_handle_submission()` right after the v1.1.18 length check and before any file is written (no orphaned uploads on rejection). The rule is deliberately permissive because the form serves foreign nationals and many number styles: optional leading `+` (also inside a leading bracket, e.g. `(+91) 98765 43210`), then digits, spaces, hyphens and brackets, with 7–15 digits (15 is the E.164 maximum; so `+91 98765 43210`, `(0361) 234 5678`, `0091 9876543210` all pass). Rejected: letters, a `+` mid-number, extension text, dot separators, several numbers in one field, fewer than 7 or more than 15 digits. Only ASCII digits count, so Arabic-Indic and Devanagari digit strings are rejected with the same message rather than silently stored.
+- Non-breaking spaces and invisible direction marks (`\p{Zs}` / `\p{Cf}`, which phone contact cards and WhatsApp commonly add when a number is copied) are treated as ordinary spaces for the check, so a pasted number isn't rejected for characters the applicant cannot see. The stored value is never reformatted — validation only accepts or rejects what was typed, so existing behaviour and data for valid input are byte-identical.
+- Values are checked as they will be stored (after `sanitize_text_field()`). Blank optional fields are skipped; a blank/whitespace-only required WhatsApp number is rejected. Non-string (crafted array) values are handled without fatal errors. Message: "<Field label> is not a valid phone number. Please use 7 to 15 digits; spaces, +, - and brackets are allowed."
+- No HTML `pattern` attribute was added: browsers' regex modes for `pattern` differ (notably the newer `v` flag's stricter character-class escaping) and a mismatch there could block valid input entirely, so the server remains the single authority.
+- Verified by running the real functions and the real `adm_mgr_handle_submission()` (v1.1.19 and v1.1.20 side by side) against WordPress core's actual `sanitize_text_field()` source: 12 accepted and 16 rejected formats (including NBSP and WhatsApp direction-mark input, invalid UTF-8, Arabic-Indic and Devanagari digits), each of the six fields individually (message names the right field label), required vs optional behaviour, crafted array input, and the handler end-to-end (v1.1.19 let every invalid number through; v1.1.20 rejects them with the specific message, while valid and blank-optional input behaves exactly as before, including the length message still taking precedence for over-20-character values).
+- No database schema changes; `ADM_MGR_DB_VERSION` unchanged.
+
 ## [1.1.19] - 2026-09-20
 
 ### Fixed
