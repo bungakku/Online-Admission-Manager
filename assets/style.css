@@ -421,6 +421,15 @@
         gap: 0;
     }
 
+    /* In a column flex container flex-basis sets the item's HEIGHT, so the
+       260px basis of .adm-field-grow (meant as a minimum WIDTH in the desktop
+       row) made the Present Address label 260px tall on mobile. Reset it
+       here. The Full Name row is switched back to a row just below, where
+       the 260px width basis is intended, so it is excluded. */
+    .adm-row:not(.adm-row-name-photo) label.adm-field-grow {
+        flex-basis: auto;
+    }
+
     .adm-input-narrow {
         width: 100%;
     }

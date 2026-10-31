@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.23] - 2026-10-31
+
+### Fixed
+- On screens up to 768px wide the **Present Address** field left a large blank gap before **Pin Code**: its `<label>` was 260px tall around a 46px textarea (about 200px of empty space). Root cause: `.adm-row label.adm-field-grow { flex: 1 1 260px; }` gives the label a 260px flex-basis, which is meant as a minimum *width* in the desktop row, but the mobile block turns every `.adm-row` into a column (`flex-direction: column`), and in a column flex container the flex-basis applies to the item's *height*. It reproduces in a bare theme with no other CSS, so it is a plugin bug and not a theme conflict. Present since v1.1.1, when the row grouping was introduced; Present Address is the only field affected.
+- Fix (one rule, inside the existing `@media (max-width: 768px)` block): `.adm-row:not(.adm-row-name-photo) label.adm-field-grow { flex-basis: auto; }`. The Full Name label also carries `adm-field-grow`, but its row `.adm-row-name-photo` is switched back to `flex-direction: row` in the same block, where the 260px width basis is intended, so that row is excluded and is unchanged. Desktop (above 768px) is untouched; no PHP, JavaScript or markup changes.
+- Verified in headless Chrome on a bare page containing only the plugin CSS from the built zip and the real form markup produced by the plugin's own `adm_mgr_render_form()`, comparing v1.1.22 CSS with v1.1.23 CSS at 1280, 769, 768, 700, 480, 375 and 320px: the Present Address label is 260px tall before and 71px after at 768, 700, 480, 375 and 320px (46px textarea plus its label text), and is unchanged at 1280px (46px) and 769px (66px). The Full Name row and label have identical widths before and after at every viewport (e.g. 337px at 375px). There is no horizontal page overflow at any width, before or after. A full per-element comparison (116 elements inside the form wrapper) shows that at and below 768px only the Present Address label, its row, the fieldset and the form change height (the form is 189px shorter) and everything below simply moves up; nothing changes in x position or width, and at 1280px and 769px nothing changes at all. Right-to-left (`dir="rtl"`) was measured at 1280, 700, 375 and 320px with the same results.
+- Not changed here: the Present Address textarea is narrower than the Permanent Address textarea on mobile (about 206px, because its label shrinks to fit); this is the same before and after and is a separate cosmetic item.
+- No database schema changes; `ADM_MGR_DB_VERSION` unchanged.
+
 ## [1.1.22] - 2026-09-21
 
 ### Fixed

@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.22
+Stable tag: 1.1.23
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 4. Admin entries list with CSV export.
 
 == Changelog ==
+
+= 1.1.23 =
+* Fixed: on phones and tablets (screens up to 768px wide) the Present Address box left a large empty gap above Pin Code. The gap is gone and the fields below now follow directly after it. Desktop layout is unchanged.
 
 = 1.1.22 =
 * Fixed: when a submission was rejected (bad phone number, over-long field, expired security check, wrong file type, and so on) the form reloaded completely empty, so a single typo meant retyping the whole application. The form now comes back filled in with everything the applicant entered — including every academic-record row — so they only fix the problem and submit again. For security the Aadhar number is not filled back in, and browsers can't refill file uploads, so a short note asks the applicant to re-enter their Aadhar number and choose their photo and documents again.
@@ -176,6 +179,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.23 =
+Removes the large blank gap under the Present Address field on phones and tablets. Clear any page cache after updating. No database changes.
 
 = 1.1.22 =
 A rejected submission now brings the form back filled in (except the Aadhar number and file uploads) instead of empty. Clear any page cache after updating. No database changes.
