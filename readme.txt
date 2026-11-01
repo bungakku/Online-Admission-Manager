@@ -4,7 +4,7 @@ Tags: admission, form, education, school, college
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.23
+Stable tag: 1.1.24
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 4. Admin entries list with CSV export.
 
 == Changelog ==
+
+= 1.1.24 =
+* Fixed: an invalid Admin Email Notifications address in Settings was silently saved as blank, so new-application notifications went nowhere with no warning. Saving now keeps the previous address and shows a clear error if the typed address is invalid; a blank address means "use the site administrator email" (shown as a placeholder). This also fixes any address already saved as blank or invalid by an earlier version, and a crafted request that previously caused a critical error on this field.
 
 = 1.1.23 =
 * Fixed: on phones and tablets (screens up to 768px wide) the Present Address box left a large empty gap above Pin Code. The gap is gone and the fields below now follow directly after it. Desktop layout is unchanged.
@@ -179,6 +182,9 @@ The plugin checks the GitHub repository's Releases for a newer version every 12 
 * General code cleanup, internationalization (i18n) coverage, and escaping/sanitization hardening throughout.
 
 == Upgrade Notice ==
+
+= 1.1.24 =
+The Admin Email Notifications setting is now validated (an invalid address is rejected with an error instead of being saved as blank), and a blank value correctly falls back to the site administrator email, including for addresses already saved incorrectly by an earlier version. No database changes.
 
 = 1.1.23 =
 Removes the large blank gap under the Present Address field on phones and tablets. Clear any page cache after updating. No database changes.

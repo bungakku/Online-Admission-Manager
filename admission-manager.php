@@ -3,7 +3,7 @@
  * Plugin Name:       Online Admission Manager
  * Plugin URI:        https://github.com/bungakku/Online-Admission-Manager
  * Description:       Complete online admission form with academic records, file uploads, admin panel, date control, email confirmation, CSV/Excel export, and payment QR code.
- * Version:           1.1.23
+ * Version:           1.1.24
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Biswajit Thokchom
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('ADM_MGR_VERSION', '1.1.23');
+define('ADM_MGR_VERSION', '1.1.24');
 define('ADM_MGR_PATH', plugin_dir_path(__FILE__));
 define('ADM_MGR_URL', plugin_dir_url(__FILE__));
 define('ADM_MGR_FILE', __FILE__);
@@ -957,8 +957,25 @@ function adm_mgr_settings_page() {
         $tagline_align = sanitize_text_field(wp_unslash($_POST['tagline_align'] ?? 'center'));
         update_option('adm_mgr_tagline_align', in_array($tagline_align, $valid_aligns, true) ? $tagline_align : 'center');
 
+        // Admin notification address. Previously sanitize_email() alone was
+        // applied, which turns a malformed address into '' — saved silently,
+        // and because a saved '' is not "missing", the fallback to the site
+        // admin email never kicked in, so new-application notifications went
+        // nowhere without a word. Now: blank is allowed (it means "use the
+        // site administrator email"), a valid address is saved, and anything
+        // else is refused with a visible error while the previous address is
+        // kept.
+        $admin_email_invalid = false;
         if (isset($_POST['adm_mgr_admin_email'])) {
-            update_option('adm_mgr_admin_email', sanitize_email(wp_unslash($_POST['adm_mgr_admin_email'])));
+            $admin_email_raw = wp_unslash($_POST['adm_mgr_admin_email']);
+            $admin_email_raw = is_string($admin_email_raw) ? trim($admin_email_raw) : false;
+            if ('' === $admin_email_raw) {
+                update_option('adm_mgr_admin_email', '');
+            } elseif (false !== $admin_email_raw && is_email($admin_email_raw)) {
+                update_option('adm_mgr_admin_email', sanitize_email($admin_email_raw));
+            } else {
+                $admin_email_invalid = true;
+            }
         }
         if (isset($_POST['adm_start_date'])) {
             update_option('adm_mgr_start_date', sanitize_text_field(wp_unslash($_POST['adm_start_date'])));
@@ -975,6 +992,9 @@ function adm_mgr_settings_page() {
         update_option('adm_mgr_delete_data_on_uninstall', isset($_POST['delete_data_on_uninstall']) ? '1' : '0');
 
         echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Settings saved.', 'admission-mgr') . '</p></div>';
+        if ($admin_email_invalid) {
+            echo '<div class="notice notice-error"><p>' . esc_html__('The Admin Email Notifications address is not a valid email address, so it was not changed. All other settings were saved.', 'admission-mgr') . '</p></div>';
+        }
     }
 
     $inst_name      = get_option('adm_mgr_institute_name', '');
@@ -1188,7 +1208,16 @@ function adm_mgr_settings_page() {
             <table class="form-table" role="presentation">
                 <tr>
                     <th><?php esc_html_e('Admin Email Notifications', 'admission-mgr'); ?></th>
-                    <td><input type="email" name="adm_mgr_admin_email" value="<?php echo esc_attr($admin_email); ?>" class="regular-text"></td>
+                    <td>
+                        <input type="email" name="adm_mgr_admin_email" value="<?php echo esc_attr($admin_email); ?>" placeholder="<?php echo esc_attr(get_option('admin_email')); ?>" class="regular-text">
+                        <p class="description"><?php
+                            printf(
+                                /* translators: %s: the site administrator email address */
+                                esc_html__('New-application notifications are sent here. Leave blank to use the site administrator email (%s).', 'admission-mgr'),
+                                esc_html(get_option('admin_email'))
+                            );
+                        ?></p>
+                    </td>
                 </tr>
                 <tr>
                     <th><?php esc_html_e('Admission Period', 'admission-mgr'); ?></th>
@@ -2524,9 +2553,8 @@ function adm_mgr_handle_submission() {
     }
 
     // Notify admin
-    $admin_email = get_option('adm_mgr_admin_email', get_option('admin_email'));
     wp_mail(
-        $admin_email,
+        adm_mgr_get_admin_notification_email(),
         __('New Admission Application', 'admission-mgr'),
         sprintf(
             /* translators: 1: submission ID, 2: applicant name */
@@ -2548,6 +2576,21 @@ function adm_mgr_handle_submission() {
     $redirect_url = add_query_arg('submitted', 'success', remove_query_arg(array('submitted')));
     wp_safe_redirect($redirect_url);
     exit;
+}
+
+/**
+ * Address that new-application notifications go to: the address saved in
+ * Settings if it is a valid email, otherwise the site administrator email.
+ * Checked at send time (not just at save time) so installs that already have
+ * a blank or malformed address saved by an earlier version stop losing
+ * notifications too.
+ */
+function adm_mgr_get_admin_notification_email() {
+    $email = get_option('adm_mgr_admin_email', '');
+    if (is_string($email) && is_email($email)) {
+        return $email;
+    }
+    return get_option('admin_email');
 }
 
 /**
